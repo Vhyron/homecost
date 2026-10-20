@@ -92,7 +92,7 @@ def set_setting(
     db.execute("UPDATE settings SET value = ? WHERE key = ?", [value, key])
 
 
-def add_expense(
+def _add_expense(
     db: duckdb.DuckDBPyConnection,
     *,
     paid_date: date,
@@ -138,3 +138,35 @@ def add_expense(
         [paid_date, category, amount, vendor, cost_month, bill_date, normalized_method, quantity],
     ).fetchone()
     return result[0]
+
+
+def add_expense(
+    db: duckdb.DuckDBPyConnection,
+    *,
+    paid_date: date,
+    category: str,
+    amount: Decimal,
+    payment_method: str,
+    vendor: str | None = None,
+    cost_month: date | None = None,
+    bill_date: date | None = None,
+    quantity: Decimal | None = None,
+) -> int:
+    db.execute("BEGIN TRANSACTION")
+    try:
+        result = _add_expense(
+            db,
+            paid_date=paid_date,
+            category=category,
+            amount=amount,
+            payment_method=payment_method,
+            vendor=vendor,
+            cost_month=cost_month,
+            bill_date=bill_date,
+            quantity=quantity,
+        )
+        db.execute("COMMIT")
+        return result
+    except Exception:
+        db.execute("ROLLBACK")
+        raise

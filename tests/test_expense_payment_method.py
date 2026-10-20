@@ -17,7 +17,7 @@ def test_expense_requires_managed_payment_method(tmp_path):
             amount=Decimal("1.00"),
             payment_method="not-managed",
         )
-    assert db.execute("SELECT count(*) FROM expenses").fetchone()[0] == 0
+    assert db.execute("SELECT count(*) FROM information_schema.tables WHERE table_schema='main'").fetchone()[0] == 0
 
 
 def test_expense_accepts_managed_payment_method(tmp_path):

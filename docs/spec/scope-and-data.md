@@ -36,7 +36,7 @@ Payment methods are a separate managed list, initialized with `cash` and system-
 
 | ID | Requirement |
 |---|---|
-| D-01 | Each expense has a required paid date, category, and positive amount. Vendor/store is optional. `cost_month` defaults to the paid month and can be set separately; it is the month the owner assigns the cost to. Optional `bill_date` records when a bill was issued and never determines `cost_month`. Do not split bills across months. |
+| D-01 | Each expense has a required paid date, category, and positive amount. Vendor/store is optional. `cost_month` defaults to the paid month and can be set separately; it is the month the owner assigns the cost to. Optional `bill_date` records when a bill was issued and never determines `cost_month`. Do not split bills across months. Tests: `test_add_expense_defaults_cost_month_to_paid_month`, `test_add_expense_accepts_cost_month_and_bill_date_independently`, `test_add_expense_rejects_missing_required_fields`. |
 | D-02 | A September utility bill paid in October can be assigned to September. A later payment date does not move its cost into the payment month. |
 | D-03 | Money uses `Decimal` in Python and `DECIMAL` in DuckDB; never use floats for amounts. Amounts have at most two decimal places. |
 | D-04 | Category values are trimmed, repeated spaces collapsed, and converted to lowercase when saved. Names that normalize to the same value are duplicates. Punctuation is significant. |

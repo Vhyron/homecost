@@ -20,7 +20,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | D-07 | Enforce household-time-zone “today”, future-date refusal, and the 12-month assignment gap. | 1f83cdc |
 | [x] | D-02 | Test that late-paid utility expenses can remain assigned to the earlier cost month. | ad1283a |
 | [x] | D-06 | Store monthly-bill eligibility on categories. | a52c09d |
-| [ ] | D-08 | Make invalid expense writes atomic. | |
+| [x] | D-08 | Make invalid expense writes atomic. | eef78b3 |
 | [ ] | I-01 | Route CLI and CSV writes through the same service validation. | |
 | [ ] | I-02 | Implement guided single-expense entry. | |
 | [ ] | I-03 | Add guided category creation with explicit monthly-bill choice. | |

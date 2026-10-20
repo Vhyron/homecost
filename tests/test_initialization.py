@@ -18,4 +18,4 @@ def test_initialize_is_repeatable_and_adds_seeds_without_overwriting(tmp_path):
     assert db.execute("SELECT count(*) FROM vendors WHERE name='my vendor'").fetchone() == (1,)
     assert db.execute("SELECT count(*) FROM payment_methods WHERE name='my method'").fetchone() == (1,)
     assert db.execute("SELECT count(*) FROM categories WHERE name='groceries'").fetchone() == (1,)
-    assert db.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall() == [(1,), (2,), (3,), (4,), (5,)]
+    assert db.execute("SELECT version FROM schema_migrations ORDER BY version").fetchall() == [(1,), (2,), (3,), (4,), (5,), (6,)]

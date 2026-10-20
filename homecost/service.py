@@ -21,7 +21,10 @@ def add_category(db: duckdb.DuckDBPyConnection, name: str, unit: str | None = No
     initialize(db)
     if db.execute("SELECT 1 FROM categories WHERE name = ?", [normalized]).fetchone():
         raise ValueError(f"category {normalized!r} already exists")
-    db.execute("INSERT INTO categories (name, unit) VALUES (?, ?)", [normalized, unit])
+    db.execute(
+        "INSERT INTO categories (name, unit, monthly_bill_expected) VALUES (?, ?, FALSE)",
+        [normalized, unit],
+    )
     return normalized
 
 

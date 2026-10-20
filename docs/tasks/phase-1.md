@@ -14,7 +14,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | D-11 | Normalize vendor names and reject normalized duplicates. | c76602b |
 | [x] | D-12 | Normalize payment-method names and reject normalized duplicates. | 61305d8 |
 | [x] | D-10 | Require each expense to use a managed payment method. | 4157af9 |
-| [ ] | D-05 | Validate metered-category quantity and precision rules. | |
+| [x] | D-05 | Validate metered-category quantity and precision rules. | c233293 |
 | [ ] | D-13 | Enforce one installation currency and manual conversion semantics. | |
 | [ ] | I-10 | Add validated settings display/update, persistence, defaults, and safeguards. | |
 | [ ] | D-07 | Enforce household-time-zone “today”, future-date refusal, and the 12-month assignment gap. | |

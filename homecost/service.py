@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from decimal import Decimal
 from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
@@ -49,6 +49,11 @@ def get_settings(db: duckdb.DuckDBPyConnection) -> dict[str, str]:
 
 
 _CURRENCIES = set("AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF CLP CNY COP CRC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SLL SOS SRD SSP STN SVC SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF XCD XOF XPF YER ZAR ZMW ZWL".split())
+
+
+def today_in_timezone(db: duckdb.DuckDBPyConnection) -> date:
+    timezone = get_settings(db)["timezone"]
+    return datetime.now(ZoneInfo(timezone)).date()
 
 
 def set_setting(
@@ -108,6 +113,11 @@ def add_expense(
     cost_month = cost_month.replace(day=1)
     normalized_method = normalize_name(payment_method)
     initialize(db)
+    if paid_date > today_in_timezone(db):
+        raise ValueError("paid_date cannot be later than today in the household time zone")
+    month_gap = (paid_date.year - cost_month.year) * 12 + paid_date.month - cost_month.month
+    if abs(month_gap) > 12:
+        raise ValueError("paid_date and cost_month cannot be more than 12 calendar months apart")
     category_row = db.execute("SELECT unit FROM categories WHERE name = ?", [category]).fetchone()
     if category_row and category_row[0]:
         if not isinstance(quantity, Decimal) or quantity <= 0:

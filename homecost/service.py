@@ -24,6 +24,15 @@ def add_category(db: duckdb.DuckDBPyConnection, name: str, unit: str | None = No
     return normalized
 
 
+def add_vendor(db: duckdb.DuckDBPyConnection, name: str) -> str:
+    normalized = normalize_name(name)
+    initialize(db)
+    if db.execute("SELECT 1 FROM vendors WHERE name = ?", [normalized]).fetchone():
+        raise ValueError(f"vendor {normalized!r} already exists")
+    db.execute("INSERT INTO vendors (name) VALUES (?)", [normalized])
+    return normalized
+
+
 def add_expense(
     db: duckdb.DuckDBPyConnection,
     *,

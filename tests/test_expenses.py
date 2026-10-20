@@ -34,6 +34,7 @@ def test_add_expense_accepts_cost_month_and_bill_date_independently(tmp_path):
         payment_method="cash",
         cost_month=date(2025, 3, 1),
         bill_date=date(2025, 3, 20),
+        quantity=Decimal("1"),
     )
     assert db.execute(
         "SELECT cost_month, bill_date FROM expenses WHERE id = ?", [expense_id]

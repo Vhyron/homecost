@@ -1,0 +1,1 @@
+ALTER TABLE expenses ADD COLUMN quantity DECIMAL(18, 3);

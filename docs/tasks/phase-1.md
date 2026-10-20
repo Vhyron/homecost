@@ -6,7 +6,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 
 | Done | ID | Commit-sized task | Commit hash |
 |---|---|---|---|
-| [ ] | Bootstrap | Create the Python package, CLI entry point, dependency lock, and pytest setup; no expense behavior yet. | |
+| [x] | Bootstrap | Create the Python package, CLI entry point, dependency lock, and pytest setup; no expense behavior yet. | e89978a |
 | [ ] | D-01 | Store required expense fields, cost-month default/override, and optional bill date. | |
 | [ ] | D-03 | Preserve monetary precision with `Decimal` and DuckDB `DECIMAL`. | |
 | [ ] | D-09 | Add ordered migrations and repeatable initialization with add-only seeds. | |

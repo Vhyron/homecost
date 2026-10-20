@@ -48,6 +48,7 @@ def add_expense(
     paid_date: date,
     category: str,
     amount: Decimal,
+    payment_method: str,
     vendor: str | None = None,
     cost_month: date | None = None,
     bill_date: date | None = None,
@@ -62,10 +63,14 @@ def add_expense(
         raise ValueError("amount must have at most two decimal places")
     cost_month = cost_month or paid_date.replace(day=1)
     cost_month = cost_month.replace(day=1)
+    normalized_method = normalize_name(payment_method)
     initialize(db)
+    if not db.execute("SELECT 1 FROM payment_methods WHERE name = ?", [normalized_method]).fetchone():
+        raise ValueError(f"payment method {normalized_method!r} is not managed; add it first")
     result = db.execute(
-        """INSERT INTO expenses (paid_date, category, amount, vendor, cost_month, bill_date)
-           VALUES (?, ?, ?, ?, ?, ?) RETURNING id""",
-        [paid_date, category, amount, vendor, cost_month, bill_date],
+        """INSERT INTO expenses
+           (paid_date, category, amount, vendor, cost_month, bill_date, payment_method)
+           VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id""",
+        [paid_date, category, amount, vendor, cost_month, bill_date, normalized_method],
     ).fetchone()
     return result[0]

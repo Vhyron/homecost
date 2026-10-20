@@ -14,6 +14,7 @@ def test_add_expense_defaults_cost_month_to_paid_month(tmp_path):
         paid_date=date(2025, 3, 12),
         category="groceries",
         amount=Decimal("12.50"),
+        payment_method="cash",
     )
     row = db.execute(
         "SELECT paid_date, category, amount, vendor, cost_month, bill_date "
@@ -30,6 +31,7 @@ def test_add_expense_accepts_cost_month_and_bill_date_independently(tmp_path):
         paid_date=date(2025, 4, 2),
         category="electricity",
         amount=Decimal("30.00"),
+        payment_method="cash",
         cost_month=date(2025, 3, 1),
         bill_date=date(2025, 3, 20),
     )
@@ -41,7 +43,7 @@ def test_add_expense_accepts_cost_month_and_bill_date_independently(tmp_path):
 @pytest.mark.parametrize("field,value", [("paid_date", None), ("category", ""), ("amount", Decimal("0"))])
 def test_add_expense_rejects_missing_required_fields(tmp_path, field, value):
     db = duckdb.connect(str(tmp_path / "test.duckdb"))
-    fields = dict(paid_date=date(2025, 3, 12), category="groceries", amount=Decimal("12.50"))
+    fields = dict(paid_date=date(2025, 3, 12), category="groceries", amount=Decimal("12.50"), payment_method="cash")
     fields[field] = value
     with pytest.raises(ValueError):
         add_expense(db, **fields)

@@ -10,7 +10,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | D-01 | Store required expense fields, cost-month default/override, and optional bill date. | 5314893 |
 | [x] | D-03 | Preserve monetary precision with `Decimal` and DuckDB `DECIMAL`. | 10843d7 |
 | [x] | D-09 | Add ordered migrations and repeatable initialization with add-only seeds. | 58626e1 |
-| [ ] | D-04 | Normalize category names and reject normalized duplicates. | |
+| [x] | D-04 | Normalize category names and reject normalized duplicates. | 4c229a8 |
 | [ ] | D-11 | Normalize vendor names and reject normalized duplicates. | |
 | [ ] | D-12 | Normalize payment-method names and reject normalized duplicates. | |
 | [ ] | D-10 | Require each expense to use a managed payment method. | |

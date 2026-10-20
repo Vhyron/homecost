@@ -1,0 +1,46 @@
+# Phase 1: Commit-sized tasks
+
+Work through this checklist in order. Each row is one commit; its SPEC ID is the acceptance contract. Read the relevant file from the [SPEC index](../SPEC.md), not every spec topic. Follow the [branching and commit workflow](../workflow/branching-and-commits.md).
+
+For each SPEC task: write the failing test first, implement only that requirement, run the targeted test and full suite on the feature branch, record the passing test name beside the requirement in the SPEC, then merge to `dev`. Record the commit's short hash in the table after merging. The bootstrap task has no SPEC ID.
+
+| Done | ID | Commit-sized task | Commit hash |
+|---|---|---|---|
+| [ ] | Bootstrap | Create the Python package, CLI entry point, dependency lock, and pytest setup; no expense behavior yet. | |
+| [ ] | D-01 | Store required expense fields, cost-month default/override, and optional bill date. | |
+| [ ] | D-03 | Preserve monetary precision with `Decimal` and DuckDB `DECIMAL`. | |
+| [ ] | D-09 | Add ordered migrations and repeatable initialization with add-only seeds. | |
+| [ ] | D-04 | Normalize category names and reject normalized duplicates. | |
+| [ ] | D-11 | Normalize vendor names and reject normalized duplicates. | |
+| [ ] | D-12 | Normalize payment-method names and reject normalized duplicates. | |
+| [ ] | D-10 | Require each expense to use a managed payment method. | |
+| [ ] | D-05 | Validate metered-category quantity and precision rules. | |
+| [ ] | D-13 | Enforce one installation currency and manual conversion semantics. | |
+| [ ] | I-10 | Add validated settings display/update, persistence, defaults, and safeguards. | |
+| [ ] | D-07 | Enforce household-time-zone “today”, future-date refusal, and the 12-month assignment gap. | |
+| [ ] | D-02 | Test that late-paid utility expenses can remain assigned to the earlier cost month. | |
+| [ ] | D-06 | Store monthly-bill eligibility on categories. | |
+| [ ] | D-08 | Make invalid expense writes atomic. | |
+| [ ] | I-01 | Route CLI and CSV writes through the same service validation. | |
+| [ ] | I-02 | Implement guided single-expense entry. | |
+| [ ] | I-03 | Add guided category creation with explicit monthly-bill choice. | |
+| [ ] | I-08 | Add managed payment-method creation. | |
+| [ ] | I-04 | Validate CSV rows before any write and report all row errors. | |
+| [ ] | I-05 | Parse the specified CSV columns, defaults, and managed-list values. | |
+| [ ] | I-06 | Edit an expense atomically with creation validation. | |
+| [ ] | I-07 | Confirm and permanently delete one expense. | |
+| [ ] | I-09 | Add shared exact-match duplicate detection and per-row CSV review. | |
+| [ ] | I-11 | Rename categories, vendors, or payment methods across existing expenses and future entry. | |
+| [ ] | I-12 | Archive removed managed values without changing historical expenses. | |
+| [ ] | I-14 | Show active/archived managed values and reactivate an archived value on add. | |
+| [ ] | I-13 | Filter unassigned expenses and correct them individually. | |
+| [ ] | R-01 | Report monthly, quarterly, and yearly category totals with period detail. | |
+| [ ] | R-02 | Support cost-month and paid-date report bases. | |
+| [ ] | R-03 | Mark current periods “to date” and avoid incomplete-period comparisons. | |
+| [ ] | R-04 | Report grocery trip counts and averages. | |
+| [ ] | R-05 | Report metered usage/unit costs and previous-month comparison behavior. | |
+| [ ] | R-06 | Report monthly-bill record statuses. | |
+| [ ] | O-02 | Create, verify, name, retain, and safely rotate local backups. | |
+| [ ] | O-03 | Restore to a new path without overwriting an existing database. | |
+
+Before using real household data, run the full documented test suite and synthetic-data demo on Mac, reconcile report totals against source bills or statements, and create a backup that restores successfully to a separate file.

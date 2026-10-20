@@ -1,0 +1,2 @@
+CREATE TABLE settings (key VARCHAR PRIMARY KEY, value VARCHAR NOT NULL);
+INSERT INTO settings VALUES ('currency', 'PHP');

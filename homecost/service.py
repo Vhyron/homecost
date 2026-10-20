@@ -6,6 +6,24 @@ import duckdb
 from homecost.db import initialize
 
 
+def normalize_name(name: str) -> str:
+    if not isinstance(name, str):
+        raise ValueError("name is required")
+    normalized = " ".join(name.split()).lower()
+    if not normalized:
+        raise ValueError("name is required")
+    return normalized
+
+
+def add_category(db: duckdb.DuckDBPyConnection, name: str, unit: str | None = None) -> str:
+    normalized = normalize_name(name)
+    initialize(db)
+    if db.execute("SELECT 1 FROM categories WHERE name = ?", [normalized]).fetchone():
+        raise ValueError(f"category {normalized!r} already exists")
+    db.execute("INSERT INTO categories (name, unit) VALUES (?, ?)", [normalized, unit])
+    return normalized
+
+
 def add_expense(
     db: duckdb.DuckDBPyConnection,
     *,

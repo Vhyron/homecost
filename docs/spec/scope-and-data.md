@@ -44,7 +44,7 @@ Payment methods are a separate managed list, initialized with `cash` and system-
 | D-06 | A category marked monthly-bill-expected is eligible for a bill-status report. |
 | D-07 | “Today” uses the configured household time zone. Reject a `paid_date` later than today. The calendar-month gap between `paid_date` and `cost_month` may be at most 12 months in either direction; this does not limit how far back an expense may be recorded. Timestamps, if stored, are UTC. |
 | D-08 | An entry that fails validation leaves no partial data behind. |
-| D-09 | Database schema changes use ordered migrations; initialization is repeatable and does not overwrite existing category, vendor, or payment-method data. |
+| D-09 | Database schema changes use ordered migrations; initialization is repeatable and does not overwrite existing category, vendor, or payment-method data. Test: `test_initialize_is_repeatable_and_adds_seeds_without_overwriting`. |
 | D-10 | Every expense has a required payment method selected from the managed list. |
 | D-11 | Vendor names are trimmed, repeated spaces collapsed, and converted to lowercase when saved, like categories. Values that normalize to the same name are duplicates; punctuation is significant. |
 | D-12 | Payment-method names use the same normalization and duplicate rules as categories and vendors. |

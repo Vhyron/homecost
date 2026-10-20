@@ -16,3 +16,4 @@ These are settled owner decisions. Normative behavior is in [scope and data](../
 | DEC-37 | Renaming a category, vendor, or payment method updates the label on all existing expenses and future entries; confirm and report the number of affected expenses. |
 | DEC-38 | Removing a category, vendor, or payment method requires confirmation and archives it, preserving historical expenses and reports while excluding it from new entries/imports. Adding an archived name reactivates it. |
 | DEC-39 | Keep `unassigned` as a reserved system value. Correct an individual expense through `homecost edit`; use category or payment-method filters to find unassigned records. |
+| OPEN-01 | I-01 requires CLI and CSV writes to use shared service validation, but those write flows are scheduled for I-02 and I-04/I-05 and do not exist yet. Should I-01 add minimal adapters now, or should routing be completed alongside those later tasks? |

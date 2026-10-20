@@ -20,6 +20,8 @@ def add_expense(
         raise ValueError("category is required")
     if not isinstance(amount, Decimal) or amount <= 0:
         raise ValueError("amount must be a positive Decimal")
+    if amount != amount.quantize(Decimal("0.01")):
+        raise ValueError("amount must have at most two decimal places")
     cost_month = cost_month or paid_date.replace(day=1)
     cost_month = cost_month.replace(day=1)
     db.execute("CREATE SEQUENCE IF NOT EXISTS expense_id_seq START 1")

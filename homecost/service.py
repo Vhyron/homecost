@@ -3,6 +3,8 @@ from decimal import Decimal
 
 import duckdb
 
+from homecost.db import initialize
+
 
 def add_expense(
     db: duckdb.DuckDBPyConnection,
@@ -24,18 +26,7 @@ def add_expense(
         raise ValueError("amount must have at most two decimal places")
     cost_month = cost_month or paid_date.replace(day=1)
     cost_month = cost_month.replace(day=1)
-    db.execute("CREATE SEQUENCE IF NOT EXISTS expense_id_seq START 1")
-    db.execute(
-        """CREATE TABLE IF NOT EXISTS expenses (
-            id BIGINT PRIMARY KEY DEFAULT nextval('expense_id_seq'),
-            paid_date DATE NOT NULL,
-            category VARCHAR NOT NULL,
-            amount DECIMAL(18, 2) NOT NULL,
-            vendor VARCHAR,
-            cost_month DATE NOT NULL,
-            bill_date DATE
-        )"""
-    )
+    initialize(db)
     result = db.execute(
         """INSERT INTO expenses (paid_date, category, amount, vendor, cost_month, bill_date)
            VALUES (?, ?, ?, ?, ?, ?) RETURNING id""",

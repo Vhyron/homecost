@@ -16,7 +16,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | D-10 | Require each expense to use a managed payment method. | 4157af9 |
 | [x] | D-05 | Validate metered-category quantity and precision rules. | c233293 |
 | [x] | D-13 | Enforce one installation currency and manual conversion semantics. | a6469c1 |
-| [ ] | I-10 | Add validated settings display/update, persistence, defaults, and safeguards. | |
+| [x] | I-10 | Add validated settings display/update, persistence, defaults, and safeguards. | 0ada83b |
 | [ ] | D-07 | Enforce household-time-zone “today”, future-date refusal, and the 12-month assignment gap. | |
 | [ ] | D-02 | Test that late-paid utility expenses can remain assigned to the earlier cost month. | |
 | [ ] | D-06 | Store monthly-bill eligibility on categories. | |

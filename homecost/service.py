@@ -52,6 +52,7 @@ def add_expense(
     vendor: str | None = None,
     cost_month: date | None = None,
     bill_date: date | None = None,
+    quantity: Decimal | None = None,
 ) -> int:
     if not isinstance(paid_date, date):
         raise ValueError("paid_date is required")
@@ -65,12 +66,20 @@ def add_expense(
     cost_month = cost_month.replace(day=1)
     normalized_method = normalize_name(payment_method)
     initialize(db)
+    category_row = db.execute("SELECT unit FROM categories WHERE name = ?", [category]).fetchone()
+    if category_row and category_row[0]:
+        if not isinstance(quantity, Decimal) or quantity <= 0:
+            raise ValueError("metered categories require a positive quantity")
+        if quantity != quantity.quantize(Decimal("0.001")):
+            raise ValueError("quantity must have at most three decimal places")
+    elif quantity is not None:
+        raise ValueError("this category does not use quantity")
     if not db.execute("SELECT 1 FROM payment_methods WHERE name = ?", [normalized_method]).fetchone():
         raise ValueError(f"payment method {normalized_method!r} is not managed; add it first")
     result = db.execute(
         """INSERT INTO expenses
-           (paid_date, category, amount, vendor, cost_month, bill_date, payment_method)
-           VALUES (?, ?, ?, ?, ?, ?, ?) RETURNING id""",
-        [paid_date, category, amount, vendor, cost_month, bill_date, normalized_method],
+           (paid_date, category, amount, vendor, cost_month, bill_date, payment_method, quantity)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id""",
+        [paid_date, category, amount, vendor, cost_month, bill_date, normalized_method, quantity],
     ).fetchone()
     return result[0]

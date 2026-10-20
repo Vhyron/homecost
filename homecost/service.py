@@ -1,5 +1,6 @@
 from datetime import date
 from decimal import Decimal
+from zoneinfo import ZoneInfo, ZoneInfoNotFoundError
 
 import duckdb
 
@@ -40,6 +41,47 @@ def add_payment_method(db: duckdb.DuckDBPyConnection, name: str) -> str:
         raise ValueError(f"payment method {normalized!r} already exists")
     db.execute("INSERT INTO payment_methods (name) VALUES (?)", [normalized])
     return normalized
+
+
+def get_settings(db: duckdb.DuckDBPyConnection) -> dict[str, str]:
+    initialize(db)
+    return dict(db.execute("SELECT key, value FROM settings").fetchall())
+
+
+_CURRENCIES = set("AED AFN ALL AMD ANG AOA ARS AUD AWG AZN BAM BBD BDT BGN BHD BIF BMD BND BOB BRL BSD BTN BWP BYN BZD CAD CDF CHF CLP CNY COP CRC CUP CVE CZK DJF DKK DOP DZD EGP ERN ETB EUR FJD FKP GBP GEL GHS GIP GMD GNF GTQ GYD HKD HNL HTG HUF IDR ILS INR IQD IRR ISK JMD JOD JPY KES KGS KHR KMF KPW KRW KWD KYD KZT LAK LBP LKR LRD LSL LYD MAD MDL MGA MKD MMK MNT MOP MRU MUR MVR MWK MXN MYR MZN NAD NGN NIO NOK NPR NZD OMR PAB PEN PGK PHP PKR PLN PYG QAR RON RSD RUB RWF SAR SBD SCR SDG SEK SGD SHP SLE SLL SOS SRD SSP STN SVC SYP SZL THB TJS TMT TND TOP TRY TTD TWD TZS UAH UGX USD UYU UZS VES VND VUV WST XAF XCD XOF XPF YER ZAR ZMW ZWL".split())
+
+
+def set_setting(
+    db: duckdb.DuckDBPyConnection,
+    key: str,
+    value: str,
+    *,
+    confirm_timezone: bool = False,
+) -> None:
+    initialize(db)
+    if key not in {"timezone", "currency", "backup-retention"}:
+        raise ValueError(f"unsupported setting {key!r}")
+    if key == "timezone":
+        try:
+            ZoneInfo(value)
+        except (ZoneInfoNotFoundError, ValueError):
+            raise ValueError("timezone must be a valid IANA time-zone name") from None
+        if not confirm_timezone:
+            raise ValueError("changing the time zone requires confirmation")
+    elif key == "currency":
+        value = value.upper()
+        if value not in _CURRENCIES:
+            raise ValueError("currency must be a valid ISO 4217 code")
+        if db.execute("SELECT count(*) FROM expenses").fetchone()[0]:
+            raise ValueError("currency cannot change after the first expense")
+    else:
+        try:
+            retention = int(value)
+        except ValueError:
+            raise ValueError("backup-retention must be an integer from 1 to 365") from None
+        if str(retention) != value or not 1 <= retention <= 365:
+            raise ValueError("backup-retention must be an integer from 1 to 365")
+    db.execute("UPDATE settings SET value = ? WHERE key = ?", [value, key])
 
 
 def add_expense(

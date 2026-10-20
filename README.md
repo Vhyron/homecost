@@ -4,7 +4,7 @@ Homecost is a small household cost warehouse. It records expenses and reports sp
 
 The first version is for one household per installation. It runs on a Mac and should be portable to a dedicated Raspberry Pi later. Expenses are entered through a CLI or imported from CSV. There is no API or front end in v1.
 
-> **Current phase:** Phase 0 — specification development, before implementation. The SPEC has been approved; implementation begins in Phase 1.
+> **Current phase:** Phase 1 — implementation is in progress against the approved SPEC.
 
 ## What it tracks
 
@@ -22,7 +22,7 @@ For example, an October utility bill paid in November can count toward October. 
 
 ## Develop and test
 
-No build or test commands are defined yet. The project will use Python 3.11+, `argparse`, and `pytest`, with `uv` for Python environment and dependency management. The roadmap covers building the application from scratch; setup and verification instructions will be added when implementation begins.
+Use `uv sync` to install the pinned dependencies and `uv run pytest` to run the test suite. The project uses Python 3.11+, `argparse`, and `pytest`.
 
 ## CLI overview
 
@@ -37,7 +37,7 @@ Planned command reference:
 - `homecost settings` and `homecost settings set KEY VALUE`
 - `homecost backup`; `homecost restore BACKUP --to DATABASE`
 
-`homecost add` guides you through one expense with numbered category and payment-method choices; press Enter to leave the optional vendor empty. Report periods are `YYYY-MM`, `YYYY-Qn`, or `YYYY`; basis is `cost_month` or `paid_date`. Renaming changes labels on past and future expenses; removing archives an item without changing past expenses. Use `homecost list --category unassigned` or `homecost list --payment-method unassigned` to find expenses needing classification, then edit the individual expense. `docs/SPEC.md` links to the command reference and focused requirements. These are planned commands; the CLI has not been built yet.
+`homecost add` guides you through one expense with numbered category and payment-method choices; press Enter to leave the optional vendor empty. Report periods are `YYYY-MM`, `YYYY-Qn`, or `YYYY`; basis is `cost_month` or `paid_date`. Renaming changes labels on past and future expenses; removing archives an item without changing past expenses. Use `homecost list --category unassigned` or `homecost list --payment-method unassigned` to find expenses needing classification, then edit the individual expense. `homecost settings` and `homecost settings set KEY VALUE` are implemented; other commands remain planned. `docs/SPEC.md` links to the command reference and focused requirements.
 
 CSV import is for batches. Use a header with `paid_date` and `amount`; category, vendor, cost month, bill date, quantity, and payment method are optional columns. Blank category or payment method becomes `unassigned`; blank vendor stays empty. The importer validates the whole file first, reports invalid rows without importing any, then asks you about possible duplicate rows before importing the accepted rows together. Unknown nonblank managed-list values must be added to their list or corrected in the CSV before retrying.
 

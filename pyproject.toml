@@ -6,7 +6,9 @@ build-backend = "hatchling.build"
 name = "homecost"
 version = "0.1.0"
 requires-python = ">=3.11"
-dependencies = []
+dependencies = [
+    "duckdb==1.4.3",
+]
 
 [project.scripts]
 homecost = "homecost.cli:main"

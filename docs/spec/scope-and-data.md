@@ -46,6 +46,6 @@ Payment methods are a separate managed list, initialized with `cash` and system-
 | D-08 | An entry that fails validation leaves no partial data behind. |
 | D-09 | Database schema changes use ordered migrations; initialization is repeatable and does not overwrite existing category, vendor, or payment-method data. Test: `test_initialize_is_repeatable_and_adds_seeds_without_overwriting`. |
 | D-10 | Every expense has a required payment method selected from the managed list. |
-| D-11 | Vendor names are trimmed, repeated spaces collapsed, and converted to lowercase when saved, like categories. Values that normalize to the same name are duplicates; punctuation is significant. |
+| D-11 | Vendor names are trimmed, repeated spaces collapsed, and converted to lowercase when saved, like categories. Values that normalize to the same name are duplicates; punctuation is significant. Tests: `test_add_vendor_normalizes_name`, `test_add_vendor_rejects_normalized_duplicate`. |
 | D-12 | Payment-method names use the same normalization and duplicate rules as categories and vendors. |
 | D-13 | Each installation uses one currency for all expenses. The default is PHP. Convert any foreign-currency expense manually before entry; do not store per-expense currencies or exchange rates. |

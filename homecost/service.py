@@ -33,6 +33,15 @@ def add_vendor(db: duckdb.DuckDBPyConnection, name: str) -> str:
     return normalized
 
 
+def add_payment_method(db: duckdb.DuckDBPyConnection, name: str) -> str:
+    normalized = normalize_name(name)
+    initialize(db)
+    if db.execute("SELECT 1 FROM payment_methods WHERE name = ?", [normalized]).fetchone():
+        raise ValueError(f"payment method {normalized!r} already exists")
+    db.execute("INSERT INTO payment_methods (name) VALUES (?)", [normalized])
+    return normalized
+
+
 def add_expense(
     db: duckdb.DuckDBPyConnection,
     *,

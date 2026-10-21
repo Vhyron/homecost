@@ -4,7 +4,7 @@ This is the normative home for R-01–R-06. Keep these requirement IDs stable fo
 
 | ID | Requirement |
 |---|---|
-| R-01 | Show spending totals by category for a month, quarter, or year, with month-by-month detail inside quarters and years. All amounts use the installation currency. |
+| R-01 | Show spending totals by category for a month, quarter, or year, with month-by-month detail inside quarters and years. All amounts use the installation currency. Tests: `test_month_report_totals_by_category`, `test_quarter_report_totals_and_month_detail`, `test_year_report_totals_exclude_other_years`, `test_report_cli_shows_totals_with_month_detail`, `test_report_rejects_invalid_periods`. |
 | R-02 | Provide both cost-month view (`cost_month`) and cash view (`paid_date`) for those periods. |
 | R-03 | Label the current month, quarter, or year as “to date”. Do not compare an incomplete period with a completed previous period in v1. |
 | R-04 | For groceries, show the number of expenses (trips) and average amount per trip. |

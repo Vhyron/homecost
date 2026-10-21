@@ -37,7 +37,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | R-01 | Report monthly, quarterly, and yearly category totals with period detail. | b7fd0c0 |
 | [x] | R-02 | Support cost-month and paid-date report bases. | 3b949ef |
 | [x] | R-03 | Mark current periods “to date” and avoid incomplete-period comparisons. | ef9cf47 |
-| [ ] | R-04 | Report grocery trip counts and averages. | |
+| [x] | R-04 | Report grocery trip counts and averages. | c4406ba |
 | [ ] | R-05 | Report metered usage/unit costs and previous-month comparison behavior. | |
 | [ ] | R-06 | Report monthly-bill record statuses. | |
 | [ ] | O-02 | Create, verify, name, retain, and safely rotate local backups. | |

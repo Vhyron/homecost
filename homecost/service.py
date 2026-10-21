@@ -46,6 +46,43 @@ def normalize_name(name: str) -> str:
     return normalized
 
 
+def rename_managed_value(
+    db: duckdb.DuckDBPyConnection,
+    kind: str,
+    old_name: str,
+    new_name: str,
+) -> int:
+    lists = {
+        "category": ("categories", "category"),
+        "vendor": ("vendors", "vendor"),
+        "payment_method": ("payment_methods", "payment_method"),
+    }
+    if kind not in lists:
+        raise ValueError(f"unsupported managed list {kind!r}")
+    table, column = lists[kind]
+    old_name, new_name = normalize_name(old_name), normalize_name(new_name)
+    if kind != "vendor" and (old_name == "unassigned" or new_name == "unassigned"):
+        raise ValueError("unassigned is reserved and cannot be renamed")
+    db.execute("BEGIN TRANSACTION")
+    try:
+        initialize(db)
+        if not db.execute(f"SELECT 1 FROM {table} WHERE name=?", [old_name]).fetchone():
+            raise ValueError(f"{kind} {old_name!r} does not exist")
+        if old_name == new_name:
+            db.execute("COMMIT")
+            return 0
+        if db.execute(f"SELECT 1 FROM {table} WHERE name=?", [new_name]).fetchone():
+            raise ValueError(f"{kind} {new_name!r} already exists")
+        count = db.execute(f"SELECT count(*) FROM expenses WHERE {column}=?", [old_name]).fetchone()[0]
+        db.execute(f"UPDATE expenses SET {column}=? WHERE {column}=?", [new_name, old_name])
+        db.execute(f"UPDATE {table} SET name=? WHERE name=?", [new_name, old_name])
+        db.execute("COMMIT")
+        return count
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
+
+
 def add_category(
     db: duckdb.DuckDBPyConnection,
     name: str,

@@ -144,6 +144,35 @@ def grocery_trip_summary(
     return (trips, Decimal(str(average)).quantize(Decimal("0.01"))) if trips else None
 
 
+def bill_status(db: duckdb.DuckDBPyConnection, period: str) -> list[tuple]:
+    start, end = parse_period(period)
+    today = today_in_timezone(db)
+    initialize(db)
+    status_rows = []
+    month = date(start.year, start.month, 1)
+    while month < end:
+        if month > today.replace(day=1):
+            break  # do not report future months
+        month_end = date(month.year + 1, 1, 1) if month.month == 12 else date(month.year, month.month + 1, 1)
+        for category in db.execute(
+            "SELECT name FROM categories WHERE monthly_bill_expected ORDER BY name"
+        ).fetchall():
+            category = category[0]
+            recorded = db.execute(
+                "SELECT 1 FROM expenses WHERE category=? AND cost_month >= ? AND cost_month < ? LIMIT 1",
+                [category, month, month_end],
+            ).fetchone()
+            if recorded:
+                status = "recorded"
+            elif month == today.replace(day=1):
+                status = "pending"
+            else:
+                status = "missing"
+            status_rows.append((month, category, status))
+        month = month_end
+    return status_rows
+
+
 def is_current_period(db: duckdb.DuckDBPyConnection, period: str) -> bool:
     today = today_in_timezone(db)
     start, end = parse_period(period)

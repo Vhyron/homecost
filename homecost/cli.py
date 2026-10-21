@@ -1,4 +1,5 @@
 import argparse
+import csv
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -6,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_payment_method, add_vendor, get_settings, set_setting
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, get_settings, set_setting
 
 
 def _choice(prompt, values):
@@ -24,10 +25,22 @@ def _optional_date(prompt):
     return date.fromisoformat(value) if value else None
 
 
+def _optional_csv_date(value):
+    value = (value or "").strip()
+    return date.fromisoformat(value) if value else None
+
+
+def _optional_csv_decimal(value):
+    value = (value or "").strip()
+    return Decimal(value) if value else None
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog="homecost")
     commands = parser.add_subparsers(dest="command")
     commands.add_parser("add")
+    import_command = commands.add_parser("import")
+    import_command.add_argument("file")
     categories = commands.add_parser("categories")
     category_actions = categories.add_subparsers(dest="category_action")
     category_actions.add_parser("add")
@@ -40,6 +53,44 @@ def main(argv=None):
     setting_set.add_argument("key")
     setting_set.add_argument("value")
     args = parser.parse_args(argv)
+
+    if args.command == "import":
+        rows = []
+        parse_errors = []
+        try:
+            with open(args.file, encoding="utf-8-sig", newline="") as source:
+                reader = csv.DictReader(source)
+                for line_number, row in enumerate(reader, 2):
+                    if not any(value and value.strip() for value in row.values() if value is not None):
+                        continue
+                    try:
+                        if not row.get("paid_date", "").strip():
+                            raise ValueError("paid_date is required")
+                        if not row.get("amount", "").strip():
+                            raise ValueError("amount is required")
+                        fields = {
+                            "paid_date": date.fromisoformat(row["paid_date"].strip()),
+                            "amount": Decimal(row["amount"].strip()),
+                            "category": (row.get("category") or "").strip() or "unassigned",
+                            "vendor": (row.get("vendor") or "").strip() or None,
+                            "cost_month": _optional_csv_date(row.get("cost_month")),
+                            "bill_date": _optional_csv_date(row.get("bill_date")),
+                            "quantity": _optional_csv_decimal(row.get("quantity")),
+                            "payment_method": (row.get("payment_method") or "").strip() or "unassigned",
+                        }
+                        rows.append((line_number, fields))
+                    except (ValueError, InvalidOperation) as exc:
+                        parse_errors.append(f"line {line_number}: {exc}")
+        except OSError as exc:
+            parser.exit(2, f"homecost: error: cannot read {args.file}: {exc}\n")
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            ids, errors = add_expenses(db, rows, parse_errors)
+        if errors:
+            parser.exit(2, "homecost: import rejected; correct these rows and retry:\n" + "\n".join(errors) + "\n")
+        print(f"Imported {len(ids)} expenses.")
+        return 0
 
     if args.command == "payment-methods" and args.payment_method_action == "add":
         home = Path.home() / ".homecost"

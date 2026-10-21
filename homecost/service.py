@@ -115,7 +115,7 @@ def _add_expense(
         raise ValueError("paid_date is required")
     if not isinstance(category, str) or not category.strip():
         raise ValueError("category is required")
-    if not isinstance(amount, Decimal) or amount <= 0:
+    if not isinstance(amount, Decimal) or not amount.is_finite() or amount <= 0:
         raise ValueError("amount must be a positive Decimal")
     if amount != amount.quantize(Decimal("0.01")):
         raise ValueError("amount must have at most two decimal places")
@@ -130,7 +130,7 @@ def _add_expense(
         raise ValueError("paid_date and cost_month cannot be more than 12 calendar months apart")
     category_row = db.execute("SELECT unit FROM categories WHERE name = ?", [category]).fetchone()
     if category_row and category_row[0]:
-        if not isinstance(quantity, Decimal) or quantity <= 0:
+        if not isinstance(quantity, Decimal) or not quantity.is_finite() or quantity <= 0:
             raise ValueError("metered categories require a positive quantity")
         if quantity != quantity.quantize(Decimal("0.001")):
             raise ValueError("quantity must have at most three decimal places")
@@ -145,6 +145,26 @@ def _add_expense(
         [paid_date, category, amount, vendor, cost_month, bill_date, normalized_method, quantity],
     ).fetchone()
     return result[0]
+
+
+def add_expenses(db: duckdb.DuckDBPyConnection, rows, parse_errors=()):
+    db.execute("BEGIN TRANSACTION")
+    errors = list(parse_errors)
+    ids = []
+    try:
+        for line_number, fields in rows:
+            try:
+                ids.append(_add_expense(db, **fields))
+            except ValueError as exc:
+                errors.append(f"line {line_number}: {exc}")
+        if errors:
+            db.execute("ROLLBACK")
+            return [], errors
+        db.execute("COMMIT")
+        return ids, []
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
 
 
 def add_expense(

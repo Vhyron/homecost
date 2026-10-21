@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, delete_expense, edit_expense, find_duplicate, get_settings, rename_managed_value, same_expense, set_setting, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, delete_expense, edit_expense, find_duplicate, get_settings, rename_managed_value, same_expense, set_setting, validate_expenses
 
 
 def _choice(prompt, values):
@@ -51,17 +51,23 @@ def main(argv=None):
     category_rename = category_actions.add_parser("rename")
     category_rename.add_argument("old_name")
     category_rename.add_argument("new_name")
+    category_remove = category_actions.add_parser("remove")
+    category_remove.add_argument("name")
     vendors = commands.add_parser("vendors")
     vendor_actions = vendors.add_subparsers(dest="vendor_action")
     vendor_rename = vendor_actions.add_parser("rename")
     vendor_rename.add_argument("old_name")
     vendor_rename.add_argument("new_name")
+    vendor_remove = vendor_actions.add_parser("remove")
+    vendor_remove.add_argument("name")
     payment_methods = commands.add_parser("payment-methods")
     payment_method_actions = payment_methods.add_subparsers(dest="payment_method_action")
     payment_method_actions.add_parser("add")
     method_rename = payment_method_actions.add_parser("rename")
     method_rename.add_argument("old_name")
     method_rename.add_argument("new_name")
+    method_remove = payment_method_actions.add_parser("remove")
+    method_remove.add_argument("name")
     settings = commands.add_parser("settings")
     actions = settings.add_subparsers(dest="action")
     setting_set = actions.add_parser("set")
@@ -76,6 +82,27 @@ def main(argv=None):
         rename_kind = "vendor"
     elif args.command == "payment-methods" and args.payment_method_action == "rename":
         rename_kind = "payment_method"
+    remove_kind = None
+    if args.command == "categories" and args.category_action == "remove":
+        remove_kind = "category"
+    elif args.command == "vendors" and args.vendor_action == "remove":
+        remove_kind = "vendor"
+    elif args.command == "payment-methods" and args.payment_method_action == "remove":
+        remove_kind = "payment_method"
+    if remove_kind:
+        if input(f"Archive {remove_kind} {args.name!r}? [yes/no]: ").strip().lower() != "yes":
+            print("Removal canceled.")
+            return 0
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            try:
+                count = archive_managed_value(db, remove_kind, args.name)
+            except ValueError as exc:
+                parser.exit(2, f"homecost: error: {exc}\n")
+        print(f"Archived {remove_kind} {args.name!r}; {count} expenses retain it.")
+        return 0
+
     if rename_kind:
         if input(f"Rename {rename_kind} {args.old_name!r} to {args.new_name!r}? [yes/no]: ").strip().lower() != "yes":
             print("Rename canceled.")
@@ -268,16 +295,16 @@ def main(argv=None):
             try:
                 paid_date = date.fromisoformat(input("Paid date (YYYY-MM-DD): ").strip())
                 categories = db.execute(
-                    "SELECT name, unit FROM categories WHERE name != 'unassigned' ORDER BY name"
+                    "SELECT name, unit FROM categories WHERE is_active AND name != 'unassigned' ORDER BY name"
                 ).fetchall()
                 category = _choice("Category number: ", [row[0] for row in categories])
                 amount = Decimal(input("Amount: ").strip())
                 methods = [row[0] for row in db.execute(
-                    "SELECT name FROM payment_methods WHERE name != 'unassigned' ORDER BY name"
+                    "SELECT name FROM payment_methods WHERE is_active AND name != 'unassigned' ORDER BY name"
                 ).fetchall()]
                 payment_method = _choice("Payment method number: ", methods)
 
-                vendors = [row[0] for row in db.execute("SELECT name FROM vendors ORDER BY name").fetchall()]
+                vendors = [row[0] for row in db.execute("SELECT name FROM vendors WHERE is_active ORDER BY name").fetchall()]
                 for index, vendor in enumerate(vendors, 1):
                     print(f"{index}. {vendor}")
                 print(f"{len(vendors) + 1}. Add a vendor")

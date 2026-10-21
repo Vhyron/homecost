@@ -28,10 +28,10 @@ def initialize(db: duckdb.DuckDBPyConnection) -> None:
             db.execute("INSERT INTO schema_migrations VALUES (?)", [version])
 
     db.executemany(
-        "INSERT INTO categories (name, unit, monthly_bill_expected) VALUES (?, ?, ?) ON CONFLICT DO NOTHING",
+        "INSERT INTO categories (name, unit, monthly_bill_expected, is_active) VALUES (?, ?, ?, TRUE) ON CONFLICT DO NOTHING",
         _CATEGORIES,
     )
     db.executemany(
-        "INSERT INTO payment_methods (name) VALUES (?) ON CONFLICT DO NOTHING",
+        "INSERT INTO payment_methods (name, is_active) VALUES (?, TRUE) ON CONFLICT DO NOTHING",
         [("cash",), ("unassigned",)],
     )

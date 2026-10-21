@@ -31,7 +31,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | I-07 | Confirm and permanently delete one expense. | 341a59f |
 | [x] | I-09 | Add shared exact-match duplicate detection and per-row CSV review. | 1c7bbae |
 | [x] | I-11 | Rename categories, vendors, or payment methods across existing expenses and future entry. | 911b1c1 |
-| [ ] | I-12 | Archive removed managed values without changing historical expenses. | |
+| [x] | I-12 | Archive removed managed values without changing historical expenses. | fbda975 |
 | [ ] | I-14 | Show active/archived managed values and reactivate an archived value on add. | |
 | [ ] | I-13 | Filter unassigned expenses and correct them individually. | |
 | [ ] | R-01 | Report monthly, quarterly, and yearly category totals with period detail. | |

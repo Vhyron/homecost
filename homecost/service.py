@@ -46,6 +46,36 @@ def normalize_name(name: str) -> str:
     return normalized
 
 
+def archive_managed_value(
+    db: duckdb.DuckDBPyConnection,
+    kind: str,
+    name: str,
+) -> int:
+    lists = {
+        "category": ("categories", "category"),
+        "vendor": ("vendors", "vendor"),
+        "payment_method": ("payment_methods", "payment_method"),
+    }
+    if kind not in lists:
+        raise ValueError(f"unsupported managed list {kind!r}")
+    table, column = lists[kind]
+    name = normalize_name(name)
+    if kind != "vendor" and name == "unassigned":
+        raise ValueError("unassigned is reserved and cannot be removed")
+    db.execute("BEGIN TRANSACTION")
+    try:
+        initialize(db)
+        if not db.execute(f"SELECT 1 FROM {table} WHERE name=?", [name]).fetchone():
+            raise ValueError(f"{kind} {name!r} does not exist")
+        count = db.execute(f"SELECT count(*) FROM expenses WHERE {column}=?", [name]).fetchone()[0]
+        db.execute(f"UPDATE {table} SET is_active=FALSE WHERE name=?", [name])
+        db.execute("COMMIT")
+        return count
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
+
+
 def rename_managed_value(
     db: duckdb.DuckDBPyConnection,
     kind: str,
@@ -96,7 +126,7 @@ def add_category(
     if db.execute("SELECT 1 FROM categories WHERE name = ?", [normalized]).fetchone():
         raise ValueError(f"category {normalized!r} already exists")
     db.execute(
-        "INSERT INTO categories (name, unit, monthly_bill_expected) VALUES (?, ?, ?)",
+        "INSERT INTO categories (name, unit, monthly_bill_expected, is_active) VALUES (?, ?, ?, TRUE)",
         [normalized, unit, monthly_bill_expected],
     )
     return normalized
@@ -107,7 +137,7 @@ def add_vendor(db: duckdb.DuckDBPyConnection, name: str) -> str:
     initialize(db)
     if db.execute("SELECT 1 FROM vendors WHERE name = ?", [normalized]).fetchone():
         raise ValueError(f"vendor {normalized!r} already exists")
-    db.execute("INSERT INTO vendors (name) VALUES (?)", [normalized])
+    db.execute("INSERT INTO vendors (name, is_active) VALUES (?, TRUE)", [normalized])
     return normalized
 
 
@@ -116,7 +146,7 @@ def add_payment_method(db: duckdb.DuckDBPyConnection, name: str) -> str:
     initialize(db)
     if db.execute("SELECT 1 FROM payment_methods WHERE name = ?", [normalized]).fetchone():
         raise ValueError(f"payment method {normalized!r} already exists")
-    db.execute("INSERT INTO payment_methods (name) VALUES (?)", [normalized])
+    db.execute("INSERT INTO payment_methods (name, is_active) VALUES (?, TRUE)", [normalized])
     return normalized
 
 
@@ -199,10 +229,12 @@ def _add_expense(
     if abs(month_gap) > 12:
         raise ValueError("paid_date and cost_month cannot be more than 12 calendar months apart")
     category_row = db.execute(
-        "SELECT unit FROM categories WHERE name = ?", [normalized_category]
+        "SELECT unit, is_active FROM categories WHERE name = ?", [normalized_category]
     ).fetchone()
     if not category_row:
         raise ValueError(f"category {category!r} is not managed; add/reactivate it or correct the CSV")
+    if not category_row[1]:
+        raise ValueError(f"category {category!r} is not active; reactivate it first")
     if category_row[0]:
         if not isinstance(quantity, Decimal) or not quantity.is_finite() or quantity <= 0:
             raise ValueError("metered categories require a positive quantity")
@@ -210,12 +242,18 @@ def _add_expense(
             raise ValueError("quantity must have at most three decimal places")
     elif quantity is not None:
         raise ValueError("this category does not use quantity")
-    if normalized_vendor and not db.execute(
-        "SELECT 1 FROM vendors WHERE name = ?", [normalized_vendor]
-    ).fetchone():
+    vendor_row = db.execute(
+        "SELECT is_active FROM vendors WHERE name = ?", [normalized_vendor]
+    ).fetchone() if normalized_vendor else None
+    if normalized_vendor and not vendor_row:
         raise ValueError(f"vendor {vendor!r} is not managed; add/reactivate it or correct the CSV")
-    if not db.execute("SELECT 1 FROM payment_methods WHERE name = ?", [normalized_method]).fetchone():
+    if vendor_row and not vendor_row[0]:
+        raise ValueError(f"vendor {vendor!r} is not active; reactivate it first")
+    method_row = db.execute("SELECT is_active FROM payment_methods WHERE name = ?", [normalized_method]).fetchone()
+    if not method_row:
         raise ValueError(f"payment method {payment_method!r} is not managed; add/reactivate it or correct the CSV")
+    if not method_row[0]:
+        raise ValueError(f"payment method {payment_method!r} is not active; reactivate it first")
     values = [paid_date, normalized_category, amount, normalized_vendor, cost_month, bill_date, normalized_method, quantity]
     if _expense_id is None:
         result = db.execute(

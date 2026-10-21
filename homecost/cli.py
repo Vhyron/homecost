@@ -60,7 +60,12 @@ def main(argv=None):
         try:
             with open(args.file, encoding="utf-8-sig", newline="") as source:
                 reader = csv.DictReader(source)
-                for line_number, row in enumerate(reader, 2):
+                headers = set(reader.fieldnames or ())
+                missing = {"paid_date", "amount"} - headers
+                if missing:
+                    parser.exit(2, "homecost: CSV header is missing required columns: " + ", ".join(sorted(missing)) + "\n")
+                for row in reader:
+                    line_number = reader.line_num
                     if not any(value and value.strip() for value in row.values() if value is not None):
                         continue
                     try:

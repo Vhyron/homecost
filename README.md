@@ -39,7 +39,7 @@ Planned command reference:
 
 `homecost add` guides you through one expense with numbered category and payment-method choices; press Enter to leave the optional vendor empty. Report periods are `YYYY-MM`, `YYYY-Qn`, or `YYYY`; basis is `cost_month` or `paid_date`. Renaming changes labels on past and future expenses; removing archives an item without changing past expenses. Use `homecost list --category unassigned` or `homecost list --payment-method unassigned` to find expenses needing classification, then edit the individual expense. `homecost add`, `homecost import FILE.csv`, `homecost categories add`, `homecost payment-methods add`, `homecost settings`, and `homecost settings set KEY VALUE` are implemented; other commands remain planned. `docs/SPEC.md` links to the command reference and focused requirements.
 
-CSV import is for batches. Use a header with `paid_date` and `amount`; category, vendor, cost month, bill date, quantity, and payment method are optional columns. Blank category or payment method becomes `unassigned`; blank vendor stays empty. The importer validates the whole file first and reports all invalid rows without importing any. Duplicate review and checks for unknown managed-list values are still planned.
+CSV import is for batches. Use a header with `paid_date` and `amount`; category, vendor, cost month, bill date, quantity, and payment method are optional columns. Blank category or payment method becomes `unassigned`; blank vendor stays empty. The importer validates the whole file first and reports all invalid rows without importing any. Duplicate review is still planned.
 
 ## Settings
 

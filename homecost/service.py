@@ -186,6 +186,19 @@ def add_expenses(db: duckdb.DuckDBPyConnection, rows, parse_errors=()):
         raise
 
 
+def delete_expense(db: duckdb.DuckDBPyConnection, expense_id: int) -> None:
+    db.execute("BEGIN TRANSACTION")
+    try:
+        initialize(db)
+        deleted = db.execute("DELETE FROM expenses WHERE id=? RETURNING id", [expense_id]).fetchone()
+        if deleted is None:
+            raise ValueError(f"expense {expense_id} does not exist")
+        db.execute("COMMIT")
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
+
+
 def edit_expense(db: duckdb.DuckDBPyConnection, expense_id: int, **changes) -> int:
     allowed = {"paid_date", "category", "amount", "payment_method", "vendor", "cost_month", "bill_date", "quantity"}
     if changes.keys() - allowed:

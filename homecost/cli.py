@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, edit_expense, get_settings, set_setting
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, delete_expense, edit_expense, get_settings, set_setting
 
 
 def _choice(prompt, values):
@@ -43,6 +43,8 @@ def main(argv=None):
     import_command.add_argument("file")
     edit_command = commands.add_parser("edit")
     edit_command.add_argument("expense_id", type=int)
+    delete_command = commands.add_parser("delete")
+    delete_command.add_argument("expense_id", type=int)
     categories = commands.add_parser("categories")
     category_actions = categories.add_subparsers(dest="category_action")
     category_actions.add_parser("add")
@@ -55,6 +57,21 @@ def main(argv=None):
     setting_set.add_argument("key")
     setting_set.add_argument("value")
     args = parser.parse_args(argv)
+
+    if args.command == "delete":
+        confirmation = input(f"Permanently delete expense {args.expense_id}? [yes/no]: ").strip().lower()
+        if confirmation != "yes":
+            print("Delete canceled.")
+            return 0
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            try:
+                delete_expense(db, args.expense_id)
+            except ValueError as exc:
+                parser.exit(2, f"homecost: error: {exc}\n")
+        print(f"Deleted expense {args.expense_id}.")
+        return 0
 
     if args.command == "edit":
         home = Path.home() / ".homecost"

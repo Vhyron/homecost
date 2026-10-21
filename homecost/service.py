@@ -110,6 +110,7 @@ def _add_expense(
     cost_month: date | None = None,
     bill_date: date | None = None,
     quantity: Decimal | None = None,
+    _expense_id: int | None = None,
 ) -> int:
     if not isinstance(paid_date, date):
         raise ValueError("paid_date is required")
@@ -148,13 +149,21 @@ def _add_expense(
         raise ValueError(f"vendor {vendor!r} is not managed; add/reactivate it or correct the CSV")
     if not db.execute("SELECT 1 FROM payment_methods WHERE name = ?", [normalized_method]).fetchone():
         raise ValueError(f"payment method {payment_method!r} is not managed; add/reactivate it or correct the CSV")
-    result = db.execute(
-        """INSERT INTO expenses
-           (paid_date, category, amount, vendor, cost_month, bill_date, payment_method, quantity)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id""",
-        [paid_date, normalized_category, amount, normalized_vendor, cost_month, bill_date, normalized_method, quantity],
-    ).fetchone()
-    return result[0]
+    values = [paid_date, normalized_category, amount, normalized_vendor, cost_month, bill_date, normalized_method, quantity]
+    if _expense_id is None:
+        result = db.execute(
+            """INSERT INTO expenses
+               (paid_date, category, amount, vendor, cost_month, bill_date, payment_method, quantity)
+               VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id""",
+            values,
+        ).fetchone()
+        return result[0]
+    db.execute(
+        """UPDATE expenses SET paid_date=?, category=?, amount=?, vendor=?, cost_month=?, bill_date=?,
+           payment_method=?, quantity=? WHERE id=?""",
+        [*values, _expense_id],
+    )
+    return _expense_id
 
 
 def add_expenses(db: duckdb.DuckDBPyConnection, rows, parse_errors=()):
@@ -172,6 +181,33 @@ def add_expenses(db: duckdb.DuckDBPyConnection, rows, parse_errors=()):
             return [], errors
         db.execute("COMMIT")
         return ids, []
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
+
+
+def edit_expense(db: duckdb.DuckDBPyConnection, expense_id: int, **changes) -> int:
+    allowed = {"paid_date", "category", "amount", "payment_method", "vendor", "cost_month", "bill_date", "quantity"}
+    if changes.keys() - allowed:
+        raise ValueError("edit contains unsupported expense fields")
+    db.execute("BEGIN TRANSACTION")
+    try:
+        initialize(db)
+        row = db.execute(
+            """SELECT paid_date, category, amount, payment_method, vendor, cost_month, bill_date, quantity
+               FROM expenses WHERE id=?""",
+            [expense_id],
+        ).fetchone()
+        if row is None:
+            raise ValueError(f"expense {expense_id} does not exist")
+        fields = dict(zip(
+            ("paid_date", "category", "amount", "payment_method", "vendor", "cost_month", "bill_date", "quantity"),
+            row,
+        ))
+        fields.update(changes)
+        result = _add_expense(db, **fields, _expense_id=expense_id)
+        db.execute("COMMIT")
+        return result
     except Exception:
         db.execute("ROLLBACK")
         raise

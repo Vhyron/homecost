@@ -27,7 +27,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | I-04 | Validate CSV rows before any write and report all row errors. | ed70db9 |
 | [x] | I-05 | Parse the specified CSV columns, defaults, and managed-list values. | 96c4817 |
 | [x] | I-01 | Verify CLI and CSV writes use the shared service validation. | fe3fd20 |
-| [ ] | I-06 | Edit an expense atomically with creation validation. | |
+| [x] | I-06 | Edit an expense atomically with creation validation. | 7f5571c |
 | [ ] | I-07 | Confirm and permanently delete one expense. | |
 | [ ] | I-09 | Add shared exact-match duplicate detection and per-row CSV review. | |
 | [ ] | I-11 | Rename categories, vendors, or payment methods across existing expenses and future entry. | |

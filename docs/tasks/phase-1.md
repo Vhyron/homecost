@@ -21,12 +21,12 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | D-02 | Test that late-paid utility expenses can remain assigned to the earlier cost month. | ad1283a |
 | [x] | D-06 | Store monthly-bill eligibility on categories. | a52c09d |
 | [x] | D-08 | Make invalid expense writes atomic. | eef78b3 |
-| [ ] | I-01 | Route CLI and CSV writes through the same service validation. | |
 | [ ] | I-02 | Implement guided single-expense entry. | |
 | [ ] | I-03 | Add guided category creation with explicit monthly-bill choice. | |
 | [ ] | I-08 | Add managed payment-method creation. | |
 | [ ] | I-04 | Validate CSV rows before any write and report all row errors. | |
 | [ ] | I-05 | Parse the specified CSV columns, defaults, and managed-list values. | |
+| [ ] | I-01 | Verify CLI and CSV writes use the shared service validation. | |
 | [ ] | I-06 | Edit an expense atomically with creation validation. | |
 | [ ] | I-07 | Confirm and permanently delete one expense. | |
 | [ ] | I-09 | Add shared exact-match duplicate detection and per-row CSV review. | |

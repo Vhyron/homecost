@@ -6,7 +6,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_vendor, get_settings, set_setting
+from homecost.service import add_category, add_expense, add_payment_method, add_vendor, get_settings, set_setting
 
 
 def _choice(prompt, values):
@@ -31,12 +31,26 @@ def main(argv=None):
     categories = commands.add_parser("categories")
     category_actions = categories.add_subparsers(dest="category_action")
     category_actions.add_parser("add")
+    payment_methods = commands.add_parser("payment-methods")
+    payment_method_actions = payment_methods.add_subparsers(dest="payment_method_action")
+    payment_method_actions.add_parser("add")
     settings = commands.add_parser("settings")
     actions = settings.add_subparsers(dest="action")
     setting_set = actions.add_parser("set")
     setting_set.add_argument("key")
     setting_set.add_argument("value")
     args = parser.parse_args(argv)
+
+    if args.command == "payment-methods" and args.payment_method_action == "add":
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            try:
+                name = add_payment_method(db, input("Payment method name: "))
+            except ValueError as exc:
+                parser.exit(2, f"homecost: error: {exc}\n")
+        print(f"Added payment method {name}.")
+        return 0
 
     if args.command == "categories" and args.category_action == "add":
         home = Path.home() / ".homecost"

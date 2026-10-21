@@ -91,7 +91,10 @@ def main(argv=None):
         try:
             with duckdb.connect(str(home / "homecost.duckdb")) as db:
                 print(f"Report {args.period} ({args.basis})")
-                for category, total in category_totals(db, args.period, basis=args.basis):
+                totals = category_totals(db, args.period, basis=args.basis)
+                if not totals:
+                    print("No expenses recorded for this period.")
+                for category, total in totals:
                     print(f"{category}: {total}")
                 print("Month detail:")
                 for month, category, total in month_detail(db, args.period, basis=args.basis):

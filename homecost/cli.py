@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, get_settings, set_setting
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, edit_expense, get_settings, set_setting
 
 
 def _choice(prompt, values):
@@ -41,6 +41,8 @@ def main(argv=None):
     commands.add_parser("add")
     import_command = commands.add_parser("import")
     import_command.add_argument("file")
+    edit_command = commands.add_parser("edit")
+    edit_command.add_argument("expense_id", type=int)
     categories = commands.add_parser("categories")
     category_actions = categories.add_subparsers(dest="category_action")
     category_actions.add_parser("add")
@@ -53,6 +55,40 @@ def main(argv=None):
     setting_set.add_argument("key")
     setting_set.add_argument("value")
     args = parser.parse_args(argv)
+
+    if args.command == "edit":
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            initialize(db)
+            row = db.execute(
+                """SELECT paid_date, category, amount, payment_method, vendor, cost_month, bill_date, quantity
+                   FROM expenses WHERE id=?""",
+                [args.expense_id],
+            ).fetchone()
+            if row is None:
+                parser.exit(2, f"homecost: error: expense {args.expense_id} does not exist\n")
+            fields = dict(zip(
+                ("paid_date", "category", "amount", "payment_method", "vendor", "cost_month", "bill_date", "quantity"),
+                row,
+            ))
+            changes = {}
+            try:
+                for key in ("paid_date", "category", "amount", "payment_method"):
+                    raw = input(f"{key.replace('_', ' ')} [{fields[key]}]: ").strip()
+                    if raw:
+                        changes[key] = date.fromisoformat(raw) if key == "paid_date" else Decimal(raw) if key == "amount" else raw
+                for key in ("vendor", "cost_month", "bill_date", "quantity"):
+                    raw = input(f"{key.replace('_', ' ')} [{fields[key] or 'none'}] (Enter unchanged, - clear): ").strip()
+                    if raw == "-":
+                        changes[key] = None
+                    elif raw:
+                        changes[key] = date.fromisoformat(raw) if key in {"cost_month", "bill_date"} else Decimal(raw) if key == "quantity" else raw
+                edit_expense(db, args.expense_id, **changes)
+            except (ValueError, InvalidOperation) as exc:
+                parser.exit(2, f"homecost: error: {exc}\n")
+        print(f"Updated expense {args.expense_id}.")
+        return 0
 
     if args.command == "import":
         rows = []

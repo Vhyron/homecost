@@ -16,14 +16,21 @@ def normalize_name(name: str) -> str:
     return normalized
 
 
-def add_category(db: duckdb.DuckDBPyConnection, name: str, unit: str | None = None) -> str:
+def add_category(
+    db: duckdb.DuckDBPyConnection,
+    name: str,
+    unit: str | None,
+    monthly_bill_expected: bool,
+) -> str:
     normalized = normalize_name(name)
+    if not isinstance(monthly_bill_expected, bool):
+        raise ValueError("monthly_bill_expected must be yes or no")
     initialize(db)
     if db.execute("SELECT 1 FROM categories WHERE name = ?", [normalized]).fetchone():
         raise ValueError(f"category {normalized!r} already exists")
     db.execute(
-        "INSERT INTO categories (name, unit, monthly_bill_expected) VALUES (?, ?, FALSE)",
-        [normalized, unit],
+        "INSERT INTO categories (name, unit, monthly_bill_expected) VALUES (?, ?, ?)",
+        [normalized, unit, monthly_bill_expected],
     )
     return normalized
 

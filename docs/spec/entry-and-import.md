@@ -20,7 +20,7 @@ This is the normative home for I-01–I-09 and I-11–I-14. Requirement IDs rema
 
 | ID | Requirement |
 |---|---|
-| I-01 | CLI entry and CSV import use the same service validation. |
+| I-01 | CLI entry and CSV import use the same service validation. Test: `test_guided_entry_and_csv_import_share_service_validation`. |
 | I-02 | `homecost add` is guided entry for one expense. Show numbered choices for category and required payment method. Let the user choose an existing vendor, add one, or press Enter to leave vendor empty. Optional fields may be skipped; `cost_month` defaults to the paid month. Tests: `test_guided_add_uses_service_and_stores_metered_expense`, `test_guided_add_can_add_and_select_existing_vendor`. |
 | I-03 | `homecost categories add` creates a category with a name, optional unit, and requires an explicit yes/no answer for monthly-bill-expected; there is no default. Tests: `test_category_add_requires_and_stores_monthly_bill_choice`, `test_category_add_rejects_non_yes_no_answer`. |
 | I-04 | Validate the full CSV before writing. If any row is invalid, import nothing and report every problem with its file line number. After duplicate review, import all accepted rows together. Accept a UTF-8 BOM and blank lines. Tests: `test_import_reports_every_invalid_line_and_writes_nothing`, `test_import_writes_all_valid_rows`. |

@@ -24,7 +24,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | I-02 | Implement guided single-expense entry. | e2a1533 |
 | [x] | I-03 | Add guided category creation with explicit monthly-bill choice. | 55834b8 |
 | [x] | I-08 | Add managed payment-method creation. | f35a7d5 |
-| [ ] | I-04 | Validate CSV rows before any write and report all row errors. | |
+| [x] | I-04 | Validate CSV rows before any write and report all row errors. | ed70db9 |
 | [ ] | I-05 | Parse the specified CSV columns, defaults, and managed-list values. | |
 | [ ] | I-01 | Verify CLI and CSV writes use the shared service validation. | |
 | [ ] | I-06 | Edit an expense atomically with creation validation. | |

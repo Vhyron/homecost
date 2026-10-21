@@ -22,7 +22,7 @@ def test_manual_entry_warns_and_can_skip_exact_match(tmp_path, monkeypatch, caps
         payment_method="cash",
     )
     db.close()
-    answers = iter([today.isoformat(), "3", "10.00", "1", "", "", "", "no"])
+    answers = iter([today.isoformat(), "3", "1", "", "", "", "10.00", "no"])
     monkeypatch.setattr("builtins.input", lambda prompt: next(answers))
 
     assert main(["add"]) == 0
@@ -47,7 +47,7 @@ def test_manual_entry_can_confirm_adding_duplicate(tmp_path, monkeypatch):
         payment_method="cash",
     )
     db.close()
-    answers = iter([today.isoformat(), "3", "10.00", "1", "", "", "", "yes"])
+    answers = iter([today.isoformat(), "3", "1", "", "", "", "10.00", "yes"])
     monkeypatch.setattr("builtins.input", lambda prompt: next(answers))
 
     assert main(["add"]) == 0

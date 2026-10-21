@@ -10,19 +10,53 @@ from homecost.db import initialize
 from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, create_backup, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, restore_backup, same_expense, set_setting, today_in_timezone, validate_expenses
 
 
-def _choice(prompt, values):
-    for index, value in enumerate(values, 1):
-        print(f"{index}. {value}")
-    try:
-        choice = int(input(prompt))
-        return values[choice - 1]
-    except (ValueError, IndexError):
-        raise ValueError("choose one of the numbered options") from None
+def _choice(prompt, values, allow_empty=False):
+    """Show numbered choices starting at 1 and re-prompt until the answer is valid."""
+    while True:
+        for index, value in enumerate(values, 1):
+            print(f"{index}. {value}")
+        raw = input(prompt).strip()
+        if allow_empty and not raw:
+            return None
+        try:
+            choice = int(raw)
+        except ValueError:
+            print("Enter a number from the list.")
+            continue
+        if 1 <= choice <= len(values):
+            return choice - 1
+        print(f"Enter a number between 1 and {len(values)}.")
 
 
 def _optional_date(prompt):
     value = input(prompt).strip()
     return date.fromisoformat(value) if value else None
+
+
+def _optional_month(prompt):
+    value = input(prompt).strip()
+    if not value:
+        return None
+    year, separator, month = value.partition("-")
+    if (
+        separator != "-"
+        or len(year) != 4
+        or len(month) != 2
+        or not year.isdigit()
+        or not month.isdigit()
+        or not 1 <= int(month) <= 12
+    ):
+        raise ValueError("cost month must be YYYY-MM")
+    return date(int(year), int(month), 1)
+
+
+def _add_category_flow(db):
+    name = input("Category name: ")
+    unit = input("Unit (Enter for none): ").strip() or None
+    answer = input("Monthly bill expected? [yes/no]: ").strip().lower()
+    if answer not in {"yes", "no"}:
+        raise ValueError("answer yes or no")
+    return add_category(db, name, unit, answer == "yes")
 
 
 def _optional_csv_date(value):
@@ -357,12 +391,7 @@ def main(argv=None):
         home.mkdir(parents=True, exist_ok=True)
         with duckdb.connect(str(home / "homecost.duckdb")) as db:
             try:
-                name = input("Category name: ")
-                unit = input("Unit (Enter for none): ").strip() or None
-                answer = input("Monthly bill expected? [yes/no]: ").strip().lower()
-                if answer not in {"yes", "no"}:
-                    raise ValueError("answer yes or no")
-                category = add_category(db, name, unit, answer == "yes")
+                category = _add_category_flow(db)
             except ValueError as exc:
                 parser.exit(2, f"homecost: error: {exc}\n")
         print(f"Added category {category}.")
@@ -396,36 +425,40 @@ def main(argv=None):
             initialize(db)
             try:
                 paid_date = date.fromisoformat(input("Paid date (YYYY-MM-DD): ").strip())
-                categories = db.execute(
-                    "SELECT name, unit FROM categories WHERE is_active AND name != 'unassigned' ORDER BY name"
-                ).fetchall()
-                category = _choice("Category number: ", [row[0] for row in categories])
-                amount = Decimal(input("Amount: ").strip())
+                while True:
+                    categories = db.execute(
+                        "SELECT name, unit FROM categories WHERE is_active AND name != 'unassigned' ORDER BY name"
+                    ).fetchall()
+                    labels = [row[0] for row in categories] + ["add a new category"]
+                    category_index = _choice("Category number: ", labels)
+                    if category_index == len(categories):
+                        category = _add_category_flow(db)
+                        print(f"Added category {category}.")
+                        continue
+                    category, unit = categories[category_index]
+                    break
                 methods = [row[0] for row in db.execute(
                     "SELECT name FROM payment_methods WHERE is_active AND name != 'unassigned' ORDER BY name"
                 ).fetchall()]
-                payment_method = _choice("Payment method number: ", methods)
+                payment_method = methods[_choice("Payment method number: ", methods)]
 
                 vendors = [row[0] for row in db.execute("SELECT name FROM vendors WHERE is_active ORDER BY name").fetchall()]
-                for index, vendor in enumerate(vendors, 1):
-                    print(f"{index}. {vendor}")
-                print(f"{len(vendors) + 1}. Add a vendor")
-                vendor_choice = input("Vendor number, or Enter to skip: ").strip()
-                vendor = None
-                if vendor_choice:
-                    choice = int(vendor_choice)
-                    if 1 <= choice <= len(vendors):
-                        vendor = vendors[choice - 1]
-                    elif choice == len(vendors) + 1:
-                        vendor_name = input("Vendor name: ").strip()
-                        vendor = add_vendor(db, vendor_name)
-                    else:
-                        raise ValueError("choose an existing vendor, add a vendor, or press Enter to skip")
+                vendor_index = _choice(
+                    "Vendor number, or Enter to skip: ",
+                    vendors + ["add a vendor"],
+                    allow_empty=True,
+                )
+                if vendor_index is None:
+                    vendor = None
+                elif vendor_index == len(vendors):
+                    vendor = add_vendor(db, input("Vendor name: ").strip())
+                else:
+                    vendor = vendors[vendor_index]
 
-                cost_month = _optional_date("Cost month (YYYY-MM-DD, Enter for paid month): ")
+                cost_month = _optional_month("Cost month (YYYY-MM, press Enter to use the paid month): ")
                 bill_date = _optional_date("Bill date (YYYY-MM-DD, Enter to skip): ")
-                unit = next(unit for name, unit in categories if name == category)
                 quantity = Decimal(input(f"Quantity ({unit}): ").strip()) if unit else None
+                amount = Decimal(input("Amount: ").strip())
                 fields = {
                     "paid_date": paid_date,
                     "category": category,

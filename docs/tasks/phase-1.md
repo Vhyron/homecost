@@ -32,7 +32,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | I-09 | Add shared exact-match duplicate detection and per-row CSV review. | 1c7bbae |
 | [x] | I-11 | Rename categories, vendors, or payment methods across existing expenses and future entry. | 911b1c1 |
 | [x] | I-12 | Archive removed managed values without changing historical expenses. | fbda975 |
-| [ ] | I-14 | Show active/archived managed values and reactivate an archived value on add. | |
+| [x] | I-14 | Show active/archived managed values and reactivate an archived value on add. | 3ac3854 |
 | [ ] | I-13 | Filter unassigned expenses and correct them individually. | |
 | [ ] | R-01 | Report monthly, quarterly, and yearly category totals with period detail. | |
 | [ ] | R-02 | Support cost-month and paid-date report bases. | |

@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, same_expense, set_setting, today_in_timezone, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, create_backup, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, same_expense, set_setting, today_in_timezone, validate_expenses
 
 
 def _choice(prompt, values):
@@ -88,7 +88,18 @@ def main(argv=None):
     report = commands.add_parser("report")
     report.add_argument("period")
     report.add_argument("--basis", choices=("cost_month", "paid_date"), default="cost_month")
+    commands.add_parser("backup")
     args = parser.parse_args(argv)
+
+    if args.command == "backup":
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        db_path = home / "homecost.duckdb"
+        with duckdb.connect(str(db_path)) as db:
+            retention = int(get_settings(db)["backup-retention"])
+            path = create_backup(db, db_path, home / "backups", retention=retention)
+        print(f"Backup created: {path}")
+        return 0
 
     if args.command == "report":
         home = Path.home() / ".homecost"

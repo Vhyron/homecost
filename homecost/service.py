@@ -113,6 +113,19 @@ def rename_managed_value(
         raise
 
 
+def list_managed_values(db: duckdb.DuckDBPyConnection, kind: str) -> list[tuple[str, str]]:
+    tables = {"category": "categories", "vendor": "vendors", "payment_method": "payment_methods"}
+    if kind not in tables:
+        raise ValueError(f"unsupported managed list {kind!r}")
+    initialize(db)
+    return [
+        (name, "active" if active else "archived")
+        for name, active in db.execute(
+            f"SELECT name, is_active FROM {tables[kind]} ORDER BY name"
+        ).fetchall()
+    ]
+
+
 def add_category(
     db: duckdb.DuckDBPyConnection,
     name: str,
@@ -123,8 +136,12 @@ def add_category(
     if not isinstance(monthly_bill_expected, bool):
         raise ValueError("monthly_bill_expected must be yes or no")
     initialize(db)
-    if db.execute("SELECT 1 FROM categories WHERE name = ?", [normalized]).fetchone():
-        raise ValueError(f"category {normalized!r} already exists")
+    existing = db.execute("SELECT is_active FROM categories WHERE name = ?", [normalized]).fetchone()
+    if existing:
+        if existing[0]:
+            raise ValueError(f"category {normalized!r} already exists")
+        db.execute("UPDATE categories SET is_active=TRUE WHERE name=?", [normalized])
+        return normalized
     db.execute(
         "INSERT INTO categories (name, unit, monthly_bill_expected, is_active) VALUES (?, ?, ?, TRUE)",
         [normalized, unit, monthly_bill_expected],
@@ -135,8 +152,12 @@ def add_category(
 def add_vendor(db: duckdb.DuckDBPyConnection, name: str) -> str:
     normalized = normalize_name(name)
     initialize(db)
-    if db.execute("SELECT 1 FROM vendors WHERE name = ?", [normalized]).fetchone():
-        raise ValueError(f"vendor {normalized!r} already exists")
+    existing = db.execute("SELECT is_active FROM vendors WHERE name = ?", [normalized]).fetchone()
+    if existing:
+        if existing[0]:
+            raise ValueError(f"vendor {normalized!r} already exists")
+        db.execute("UPDATE vendors SET is_active=TRUE WHERE name=?", [normalized])
+        return normalized
     db.execute("INSERT INTO vendors (name, is_active) VALUES (?, TRUE)", [normalized])
     return normalized
 
@@ -144,8 +165,12 @@ def add_vendor(db: duckdb.DuckDBPyConnection, name: str) -> str:
 def add_payment_method(db: duckdb.DuckDBPyConnection, name: str) -> str:
     normalized = normalize_name(name)
     initialize(db)
-    if db.execute("SELECT 1 FROM payment_methods WHERE name = ?", [normalized]).fetchone():
-        raise ValueError(f"payment method {normalized!r} already exists")
+    existing = db.execute("SELECT is_active FROM payment_methods WHERE name = ?", [normalized]).fetchone()
+    if existing:
+        if existing[0]:
+            raise ValueError(f"payment method {normalized!r} already exists")
+        db.execute("UPDATE payment_methods SET is_active=TRUE WHERE name=?", [normalized])
+        return normalized
     db.execute("INSERT INTO payment_methods (name, is_active) VALUES (?, TRUE)", [normalized])
     return normalized
 

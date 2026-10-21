@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, delete_expense, edit_expense, find_duplicate, get_settings, rename_managed_value, same_expense, set_setting, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, delete_expense, edit_expense, find_duplicate, get_settings, list_managed_values, rename_managed_value, same_expense, set_setting, validate_expenses
 
 
 def _choice(prompt, values):
@@ -48,6 +48,7 @@ def main(argv=None):
     categories = commands.add_parser("categories")
     category_actions = categories.add_subparsers(dest="category_action")
     category_actions.add_parser("add")
+    category_actions.add_parser("list")
     category_rename = category_actions.add_parser("rename")
     category_rename.add_argument("old_name")
     category_rename.add_argument("new_name")
@@ -55,6 +56,8 @@ def main(argv=None):
     category_remove.add_argument("name")
     vendors = commands.add_parser("vendors")
     vendor_actions = vendors.add_subparsers(dest="vendor_action")
+    vendor_actions.add_parser("list")
+    vendor_actions.add_parser("add")
     vendor_rename = vendor_actions.add_parser("rename")
     vendor_rename.add_argument("old_name")
     vendor_rename.add_argument("new_name")
@@ -63,6 +66,7 @@ def main(argv=None):
     payment_methods = commands.add_parser("payment-methods")
     payment_method_actions = payment_methods.add_subparsers(dest="payment_method_action")
     payment_method_actions.add_parser("add")
+    payment_method_actions.add_parser("list")
     method_rename = payment_method_actions.add_parser("rename")
     method_rename.add_argument("old_name")
     method_rename.add_argument("new_name")
@@ -74,6 +78,32 @@ def main(argv=None):
     setting_set.add_argument("key")
     setting_set.add_argument("value")
     args = parser.parse_args(argv)
+
+    list_kind = None
+    if args.command == "categories" and args.category_action == "list":
+        list_kind = "category"
+    elif args.command == "vendors" and args.vendor_action == "list":
+        list_kind = "vendor"
+    elif args.command == "payment-methods" and args.payment_method_action == "list":
+        list_kind = "payment_method"
+    if list_kind:
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            for name, status in list_managed_values(db, list_kind):
+                print(f"{name} ({status})")
+        return 0
+
+    if args.command == "vendors" and args.vendor_action == "add":
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            try:
+                name = add_vendor(db, input("Vendor name: "))
+            except ValueError as exc:
+                parser.exit(2, f"homecost: error: {exc}\n")
+        print(f"Added vendor {name}.")
+        return 0
 
     rename_kind = None
     if args.command == "categories" and args.category_action == "rename":

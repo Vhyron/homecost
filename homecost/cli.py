@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, delete_expense, edit_expense, get_settings, set_setting
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, delete_expense, edit_expense, find_duplicate, get_settings, same_expense, set_setting, validate_expenses
 
 
 def _choice(prompt, values):
@@ -144,10 +144,40 @@ def main(argv=None):
         home = Path.home() / ".homecost"
         home.mkdir(parents=True, exist_ok=True)
         with duckdb.connect(str(home / "homecost.duckdb")) as db:
-            ids, errors = add_expenses(db, rows, parse_errors)
+            errors = validate_expenses(db, rows, parse_errors)
+            if errors:
+                parser.exit(2, "homecost: import rejected; correct these rows and retry:\n" + "\n".join(errors) + "\n")
+            accepted = []
+            earlier_rows = []
+            skipped = 0
+            for line_number, fields in rows:
+                duplicate_id = find_duplicate(db, fields)
+                earlier_line = next(
+                    (previous_line for previous_line, previous in earlier_rows if same_expense(fields, previous)),
+                    None,
+                )
+                if duplicate_id is not None or earlier_line is not None:
+                    if duplicate_id is not None:
+                        match = db.execute(
+                            """SELECT paid_date, cost_month, bill_date, category, amount, vendor, quantity,
+                               payment_method FROM expenses WHERE id=?""",
+                            [duplicate_id],
+                        ).fetchone()
+                        description = f"expense {duplicate_id}: {match}"
+                    else:
+                        match = next(fields for prior_line, fields in earlier_rows if prior_line == earlier_line)
+                        description = f"CSV line {earlier_line}: {match}"
+                    answer = input(f"Line {line_number} matches {description}. Import anyway? [yes/no]: ").strip().lower()
+                    if answer != "yes":
+                        skipped += 1
+                        earlier_rows.append((line_number, fields))
+                        continue
+                accepted.append((line_number, fields))
+                earlier_rows.append((line_number, fields))
+            ids, errors = add_expenses(db, accepted)
         if errors:
             parser.exit(2, "homecost: import rejected; correct these rows and retry:\n" + "\n".join(errors) + "\n")
-        print(f"Imported {len(ids)} expenses.")
+        print(f"Imported {len(ids)} expenses; skipped {skipped}.")
         return 0
 
     if args.command == "payment-methods" and args.payment_method_action == "add":
@@ -235,17 +265,28 @@ def main(argv=None):
                 bill_date = _optional_date("Bill date (YYYY-MM-DD, Enter to skip): ")
                 unit = next(unit for name, unit in categories if name == category)
                 quantity = Decimal(input(f"Quantity ({unit}): ").strip()) if unit else None
-                expense_id = add_expense(
-                    db,
-                    paid_date=paid_date,
-                    category=category,
-                    amount=amount,
-                    payment_method=payment_method,
-                    vendor=vendor,
-                    cost_month=cost_month,
-                    bill_date=bill_date,
-                    quantity=quantity,
-                )
+                fields = {
+                    "paid_date": paid_date,
+                    "category": category,
+                    "amount": amount,
+                    "payment_method": payment_method,
+                    "vendor": vendor,
+                    "cost_month": cost_month,
+                    "bill_date": bill_date,
+                    "quantity": quantity,
+                }
+                duplicate_id = find_duplicate(db, fields)
+                if duplicate_id is not None:
+                    match = db.execute(
+                        """SELECT paid_date, cost_month, bill_date, category, amount, vendor, quantity,
+                           payment_method FROM expenses WHERE id=?""",
+                        [duplicate_id],
+                    ).fetchone()
+                    print(f"Possible duplicate: expense {duplicate_id}: {match}")
+                    if input("Add anyway? [yes/no]: ").strip().lower() != "yes":
+                        print("Expense not added.")
+                        return 0
+                expense_id = add_expense(db, **fields)
             except (ValueError, InvalidOperation) as exc:
                 parser.exit(2, f"homecost: error: {exc}\n")
         print(f"Added expense {expense_id}.")

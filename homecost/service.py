@@ -7,6 +7,36 @@ import duckdb
 from homecost.db import initialize
 
 
+def _match_values(fields):
+    paid_date = fields["paid_date"]
+    return (
+        paid_date,
+        paid_date.replace(day=1) if fields.get("cost_month") is None else fields["cost_month"].replace(day=1),
+        fields.get("bill_date"),
+        normalize_name(fields["category"]),
+        fields["amount"],
+        normalize_name(fields["vendor"]) if fields.get("vendor") else None,
+        fields.get("quantity"),
+        normalize_name(fields["payment_method"]),
+    )
+
+
+def same_expense(first, second) -> bool:
+    return _match_values(first) == _match_values(second)
+
+
+def find_duplicate(db: duckdb.DuckDBPyConnection, fields) -> int | None:
+    initialize(db)
+    duplicate = db.execute(
+        """SELECT id FROM expenses WHERE paid_date=? AND cost_month=?
+           AND bill_date IS NOT DISTINCT FROM ? AND category=? AND amount=?
+           AND vendor IS NOT DISTINCT FROM ? AND quantity IS NOT DISTINCT FROM ?
+           AND payment_method=? ORDER BY id LIMIT 1""",
+        _match_values(fields),
+    ).fetchone()
+    return duplicate[0] if duplicate else None
+
+
 def normalize_name(name: str) -> str:
     if not isinstance(name, str):
         raise ValueError("name is required")
@@ -164,6 +194,22 @@ def _add_expense(
         [*values, _expense_id],
     )
     return _expense_id
+
+
+def validate_expenses(db: duckdb.DuckDBPyConnection, rows, parse_errors=()):
+    db.execute("BEGIN TRANSACTION")
+    errors = list(parse_errors)
+    try:
+        for line_number, fields in rows:
+            try:
+                _add_expense(db, **fields)
+            except ValueError as exc:
+                errors.append(f"line {line_number}: {exc}")
+        db.execute("ROLLBACK")
+        return errors
+    except Exception:
+        db.execute("ROLLBACK")
+        raise
 
 
 def add_expenses(db: duckdb.DuckDBPyConnection, rows, parse_errors=()):

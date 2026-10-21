@@ -39,7 +39,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | R-03 | Mark current periods “to date” and avoid incomplete-period comparisons. | ef9cf47 |
 | [x] | R-04 | Report grocery trip counts and averages. | c4406ba |
 | [x] | R-05 | Report metered usage/unit costs and previous-month comparison behavior. | 0e45518 |
-| [ ] | R-06 | Report monthly-bill record statuses. | |
+| [x] | R-06 | Report monthly-bill record statuses. | 0cb7105 |
 | [ ] | O-02 | Create, verify, name, retain, and safely rotate local backups. | |
 | [ ] | O-03 | Restore to a new path without overwriting an existing database. | |
 

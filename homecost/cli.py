@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, create_backup, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, same_expense, set_setting, today_in_timezone, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, create_backup, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, restore_backup, same_expense, set_setting, today_in_timezone, validate_expenses
 
 
 def _choice(prompt, values):
@@ -89,7 +89,18 @@ def main(argv=None):
     report.add_argument("period")
     report.add_argument("--basis", choices=("cost_month", "paid_date"), default="cost_month")
     commands.add_parser("backup")
+    restore = commands.add_parser("restore")
+    restore.add_argument("backup")
+    restore.add_argument("--to", dest="target", required=True)
     args = parser.parse_args(argv)
+
+    if args.command == "restore":
+        try:
+            restore_backup(args.backup, args.target)
+        except ValueError as exc:
+            parser.exit(2, f"homecost: error: {exc}\\n")
+        print(f"Restored {args.backup} to {args.target}.")
+        return 0
 
     if args.command == "backup":
         home = Path.home() / ".homecost"

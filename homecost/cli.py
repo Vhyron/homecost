@@ -181,8 +181,19 @@ def main(argv=None):
         home = Path.home() / ".homecost"
         home.mkdir(parents=True, exist_ok=True)
         with duckdb.connect(str(home / "homecost.duckdb")) as db:
-            for row in list_expenses(db, category=args.category, payment_method=args.payment_method):
-                print(f"{row[0]}: {row[1]} {row[2]} {row[3]} method={row[7]} vendor={row[4] or '-'}")
+            rows = list_expenses(db, category=args.category, payment_method=args.payment_method)
+            headers = ("ID", "paid date", "category", "amount", "payment method", "vendor", "cost month")
+            cells = [
+                (str(row[0]), str(row[1]), row[2], str(row[3]), row[7], row[4] or "", str(row[5]))
+                for row in rows
+            ]
+            widths = [
+                max([len(header)] + [len(cell[i]) for cell in cells]) if cells else len(header)
+                for i, header in enumerate(headers)
+            ]
+            print("  ".join(header.ljust(width) for header, width in zip(headers, widths)))
+            for cell in cells:
+                print("  ".join(value.ljust(width) for value, width in zip(cell, widths)))
         return 0
 
     list_kind = None

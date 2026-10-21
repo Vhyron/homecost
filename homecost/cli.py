@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, category_totals, delete_expense, edit_expense, find_duplicate, get_settings, list_expenses, list_managed_values, month_detail, rename_managed_value, same_expense, set_setting, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, category_totals, delete_expense, edit_expense, find_duplicate, get_settings, is_current_period, list_expenses, list_managed_values, month_detail, rename_managed_value, same_expense, set_setting, today_in_timezone, validate_expenses
 
 
 def _choice(prompt, values):
@@ -90,7 +90,8 @@ def main(argv=None):
         home.mkdir(parents=True, exist_ok=True)
         try:
             with duckdb.connect(str(home / "homecost.duckdb")) as db:
-                print(f"Report {args.period} ({args.basis})")
+                label = " (to date)" if is_current_period(db, args.period) else ""
+                print(f"Report {args.period} ({args.basis}){label}")
                 totals = category_totals(db, args.period, basis=args.basis)
                 if not totals:
                     print("No expenses recorded for this period.")

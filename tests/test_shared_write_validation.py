@@ -18,7 +18,7 @@ def _fails_with_validation_error(argv):
 def test_guided_entry_and_csv_import_share_service_validation(tmp_path, monkeypatch, capsys):
     monkeypatch.setenv("HOME", str(tmp_path))
     tomorrow = (datetime.now(ZoneInfo("Asia/Manila")).date() + timedelta(days=1)).isoformat()
-    answers = iter([tomorrow, "3", "1.00", "1", "", "", ""])
+    answers = iter([tomorrow, "3", "1", "", "", "", "1.00"])
     monkeypatch.setattr("builtins.input", lambda prompt: next(answers))
 
     _fails_with_validation_error(["add"])

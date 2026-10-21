@@ -216,6 +216,18 @@ def create_backup(
     return path
 
 
+def restore_backup(backup_path, target_path) -> None:
+    import shutil
+    from pathlib import Path as _Path
+
+    target_path = _Path(target_path)
+    if target_path.exists():
+        raise ValueError(f"{target_path} already exists; choose a new database path")
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(backup_path, target_path)
+    _verify_backup(target_path)
+
+
 def is_current_period(db: duckdb.DuckDBPyConnection, period: str) -> bool:
     today = today_in_timezone(db)
     start, end = parse_period(period)

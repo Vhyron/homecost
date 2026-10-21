@@ -29,7 +29,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | I-01 | Verify CLI and CSV writes use the shared service validation. | fe3fd20 |
 | [x] | I-06 | Edit an expense atomically with creation validation. | 7f5571c |
 | [x] | I-07 | Confirm and permanently delete one expense. | 341a59f |
-| [ ] | I-09 | Add shared exact-match duplicate detection and per-row CSV review. | |
+| [x] | I-09 | Add shared exact-match duplicate detection and per-row CSV review. | 1c7bbae |
 | [ ] | I-11 | Rename categories, vendors, or payment methods across existing expenses and future entry. | |
 | [ ] | I-12 | Archive removed managed values without changing historical expenses. | |
 | [ ] | I-14 | Show active/archived managed values and reactivate an archived value on add. | |

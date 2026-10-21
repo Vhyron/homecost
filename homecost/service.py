@@ -82,6 +82,12 @@ def category_totals(
     ).fetchall()
 
 
+def is_current_period(db: duckdb.DuckDBPyConnection, period: str) -> bool:
+    today = today_in_timezone(db)
+    start, end = parse_period(period)
+    return start <= today < end
+
+
 def month_detail(
     db: duckdb.DuckDBPyConnection,
     period: str,

@@ -121,28 +121,38 @@ def _add_expense(
         raise ValueError("amount must have at most two decimal places")
     cost_month = cost_month or paid_date.replace(day=1)
     cost_month = cost_month.replace(day=1)
+    normalized_category = normalize_name(category)
     normalized_method = normalize_name(payment_method)
+    normalized_vendor = normalize_name(vendor) if vendor is not None else None
     initialize(db)
     if paid_date > today_in_timezone(db):
         raise ValueError("paid_date cannot be later than today in the household time zone")
     month_gap = (paid_date.year - cost_month.year) * 12 + paid_date.month - cost_month.month
     if abs(month_gap) > 12:
         raise ValueError("paid_date and cost_month cannot be more than 12 calendar months apart")
-    category_row = db.execute("SELECT unit FROM categories WHERE name = ?", [category]).fetchone()
-    if category_row and category_row[0]:
+    category_row = db.execute(
+        "SELECT unit FROM categories WHERE name = ?", [normalized_category]
+    ).fetchone()
+    if not category_row:
+        raise ValueError(f"category {category!r} is not managed; add/reactivate it or correct the CSV")
+    if category_row[0]:
         if not isinstance(quantity, Decimal) or not quantity.is_finite() or quantity <= 0:
             raise ValueError("metered categories require a positive quantity")
         if quantity != quantity.quantize(Decimal("0.001")):
             raise ValueError("quantity must have at most three decimal places")
     elif quantity is not None:
         raise ValueError("this category does not use quantity")
+    if normalized_vendor and not db.execute(
+        "SELECT 1 FROM vendors WHERE name = ?", [normalized_vendor]
+    ).fetchone():
+        raise ValueError(f"vendor {vendor!r} is not managed; add/reactivate it or correct the CSV")
     if not db.execute("SELECT 1 FROM payment_methods WHERE name = ?", [normalized_method]).fetchone():
-        raise ValueError(f"payment method {normalized_method!r} is not managed; add it first")
+        raise ValueError(f"payment method {payment_method!r} is not managed; add/reactivate it or correct the CSV")
     result = db.execute(
         """INSERT INTO expenses
            (paid_date, category, amount, vendor, cost_month, bill_date, payment_method, quantity)
            VALUES (?, ?, ?, ?, ?, ?, ?, ?) RETURNING id""",
-        [paid_date, category, amount, vendor, cost_month, bill_date, normalized_method, quantity],
+        [paid_date, normalized_category, amount, normalized_vendor, cost_month, bill_date, normalized_method, quantity],
     ).fetchone()
     return result[0]
 

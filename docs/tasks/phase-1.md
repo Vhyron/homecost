@@ -35,7 +35,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | I-14 | Show active/archived managed values and reactivate an archived value on add. | 3ac3854 |
 | [x] | I-13 | Filter unassigned expenses and correct them individually. | 1eeb155 |
 | [x] | R-01 | Report monthly, quarterly, and yearly category totals with period detail. | b7fd0c0 |
-| [ ] | R-02 | Support cost-month and paid-date report bases. | |
+| [x] | R-02 | Support cost-month and paid-date report bases. | 3b949ef |
 | [ ] | R-03 | Mark current periods “to date” and avoid incomplete-period comparisons. | |
 | [ ] | R-04 | Report grocery trip counts and averages. | |
 | [ ] | R-05 | Report metered usage/unit costs and previous-month comparison behavior. | |

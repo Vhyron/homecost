@@ -82,6 +82,23 @@ def category_totals(
     ).fetchall()
 
 
+def grocery_trip_summary(
+    db: duckdb.DuckDBPyConnection,
+    period: str,
+    basis: str = "cost_month",
+) -> tuple[int, Decimal] | None:
+    start, end = parse_period(period)
+    if basis not in {"cost_month", "paid_date"}:
+        raise ValueError("basis must be cost_month or paid_date")
+    initialize(db)
+    trips, average = db.execute(
+        f"""SELECT count(*), AVG(amount) FROM expenses
+            WHERE category='groceries' AND {basis} >= ? AND {basis} < ?""",
+        [start, end],
+    ).fetchone()
+    return (trips, Decimal(str(average)).quantize(Decimal("0.01"))) if trips else None
+
+
 def is_current_period(db: duckdb.DuckDBPyConnection, period: str) -> bool:
     today = today_in_timezone(db)
     start, end = parse_period(period)

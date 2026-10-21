@@ -173,6 +173,49 @@ def bill_status(db: duckdb.DuckDBPyConnection, period: str) -> list[tuple]:
     return status_rows
 
 
+def _verify_backup(path) -> None:
+    check = duckdb.connect(str(path), read_only=True)
+    try:
+        check.execute("SELECT count(*) FROM expenses").fetchone()
+    finally:
+        check.close()
+
+
+def create_backup(
+    db: duckdb.DuckDBPyConnection,
+    db_path,
+    backups_dir,
+    retention: int = 5,
+):
+    import shutil
+    from pathlib import Path as _Path
+
+    backups_dir = _Path(backups_dir)
+    backups_dir.mkdir(parents=True, exist_ok=True)
+    timezone = get_settings(db)["timezone"]
+    stamp = datetime.now(ZoneInfo(timezone)).strftime("%Y%m%d-%H%M%S")
+    path = backups_dir / f"homecost-{stamp}.duckdb"
+    suffix = 1
+    while path.exists():
+        path = backups_dir / f"homecost-{stamp}-{suffix}.duckdb"
+        suffix += 1
+    db.execute("CHECKPOINT")
+    shutil.copyfile(db_path, path)
+    try:
+        _verify_backup(path)
+    except Exception:
+        path.unlink(missing_ok=True)
+        raise
+    backups = sorted(
+        backups_dir.glob("homecost-*.duckdb"),
+        key=lambda item: item.stat().st_mtime,
+        reverse=True,
+    )
+    for old in backups[retention:]:
+        old.unlink()
+    return path
+
+
 def is_current_period(db: duckdb.DuckDBPyConnection, period: str) -> bool:
     today = today_in_timezone(db)
     start, end = parse_period(period)

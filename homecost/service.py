@@ -82,6 +82,51 @@ def category_totals(
     ).fetchall()
 
 
+def metered_summary(
+    db: duckdb.DuckDBPyConnection,
+    period: str,
+    basis: str = "cost_month",
+) -> list[tuple]:
+    if not (period.count("-") == 1 and "-Q" not in period):
+        raise ValueError("metered summaries compare single months")
+    start, end = parse_period(period)
+    if start.month == 1:
+        previous_start, previous_end = date(start.year - 1, 12, 1), date(start.year, 1, 1)
+    else:
+        previous_start, previous_end = date(start.year, start.month - 1, 1), start
+    if basis not in {"cost_month", "paid_date"}:
+        raise ValueError("basis must be cost_month or paid_date")
+    initialize(db)
+    rows = db.execute(
+        f"""SELECT category, SUM(amount), SUM(quantity) FROM expenses
+            WHERE quantity IS NOT NULL AND {basis} >= ? AND {basis} < ?
+            GROUP BY category ORDER BY category""",
+        [start, end],
+    ).fetchall()
+    previous = {
+        category: (usage, total)
+        for category, usage, total in db.execute(
+            f"""SELECT category, SUM(quantity), SUM(amount) FROM expenses
+                WHERE quantity IS NOT NULL AND {basis} >= ? AND {basis} < ?
+                GROUP BY category""",
+            [previous_start, previous_end],
+        ).fetchall()
+    }
+    summary = []
+    for category, total, quantity in rows:
+        unit_cost = (total / quantity).quantize(Decimal("0.01"))
+        previous_usage, previous_total = previous.get(category, (None, None))
+        if previous_usage is None:
+            summary.append((category, total, quantity, unit_cost, None, None))
+        else:
+            previous_unit = (previous_total / previous_usage).quantize(Decimal("0.01"))
+            summary.append((
+                category, total, quantity, unit_cost,
+                quantity - previous_usage, unit_cost - previous_unit,
+            ))
+    return summary
+
+
 def grocery_trip_summary(
     db: duckdb.DuckDBPyConnection,
     period: str,

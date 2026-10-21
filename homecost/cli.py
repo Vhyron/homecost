@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, delete_expense, edit_expense, find_duplicate, get_settings, same_expense, set_setting, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, delete_expense, edit_expense, find_duplicate, get_settings, rename_managed_value, same_expense, set_setting, validate_expenses
 
 
 def _choice(prompt, values):
@@ -48,15 +48,47 @@ def main(argv=None):
     categories = commands.add_parser("categories")
     category_actions = categories.add_subparsers(dest="category_action")
     category_actions.add_parser("add")
+    category_rename = category_actions.add_parser("rename")
+    category_rename.add_argument("old_name")
+    category_rename.add_argument("new_name")
+    vendors = commands.add_parser("vendors")
+    vendor_actions = vendors.add_subparsers(dest="vendor_action")
+    vendor_rename = vendor_actions.add_parser("rename")
+    vendor_rename.add_argument("old_name")
+    vendor_rename.add_argument("new_name")
     payment_methods = commands.add_parser("payment-methods")
     payment_method_actions = payment_methods.add_subparsers(dest="payment_method_action")
     payment_method_actions.add_parser("add")
+    method_rename = payment_method_actions.add_parser("rename")
+    method_rename.add_argument("old_name")
+    method_rename.add_argument("new_name")
     settings = commands.add_parser("settings")
     actions = settings.add_subparsers(dest="action")
     setting_set = actions.add_parser("set")
     setting_set.add_argument("key")
     setting_set.add_argument("value")
     args = parser.parse_args(argv)
+
+    rename_kind = None
+    if args.command == "categories" and args.category_action == "rename":
+        rename_kind = "category"
+    elif args.command == "vendors" and args.vendor_action == "rename":
+        rename_kind = "vendor"
+    elif args.command == "payment-methods" and args.payment_method_action == "rename":
+        rename_kind = "payment_method"
+    if rename_kind:
+        if input(f"Rename {rename_kind} {args.old_name!r} to {args.new_name!r}? [yes/no]: ").strip().lower() != "yes":
+            print("Rename canceled.")
+            return 0
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            try:
+                count = rename_managed_value(db, rename_kind, args.old_name, args.new_name)
+            except ValueError as exc:
+                parser.exit(2, f"homecost: error: {exc}\n")
+        print(f"Renamed {rename_kind} {args.old_name!r} to {args.new_name!r}; updated {count} expenses.")
+        return 0
 
     if args.command == "delete":
         confirmation = input(f"Permanently delete expense {args.expense_id}? [yes/no]: ").strip().lower()

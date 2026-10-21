@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, category_totals, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, month_detail, rename_managed_value, same_expense, set_setting, today_in_timezone, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, category_totals, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, same_expense, set_setting, today_in_timezone, validate_expenses
 
 
 def _choice(prompt, values):
@@ -28,6 +28,11 @@ def _optional_date(prompt):
 def _optional_csv_date(value):
     value = (value or "").strip()
     return date.fromisoformat(value) if value else None
+
+
+def previous_month(period):
+    year, month = map(int, period.split("-"))
+    return f"{year - 1}-12" if month == 1 else f"{year}-{month - 1:02d}"
 
 
 def _optional_csv_decimal(value):
@@ -103,6 +108,13 @@ def main(argv=None):
                 groceries = grocery_trip_summary(db, args.period, basis=args.basis)
                 if groceries:
                     print(f"groceries trips: {groceries[0]}; average: {groceries[1]}")
+                if args.period.count("-") == 1 and "-Q" not in args.period:
+                    for category, total, quantity, unit_cost, usage_change, cost_change in metered_summary(db, args.period, basis=args.basis):
+                        if usage_change is None:
+                            previous = previous_month(args.period)
+                            print(f"{category} metered: {total} over {quantity} ({unit_cost}/unit). Comparison unavailable: no usage was recorded for {previous}.")
+                        else:
+                            print(f"{category} metered: {total} over {quantity} ({unit_cost}/unit). Usage change: {usage_change:+}; unit-cost change: {cost_change:+}.")
         except ValueError as exc:
             parser.exit(2, f"homecost: error: {exc}\n")
         return 0

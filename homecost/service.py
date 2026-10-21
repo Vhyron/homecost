@@ -332,6 +332,27 @@ def add_expenses(db: duckdb.DuckDBPyConnection, rows, parse_errors=()):
         raise
 
 
+def list_expenses(
+    db: duckdb.DuckDBPyConnection,
+    *,
+    category: str | None = None,
+    payment_method: str | None = None,
+) -> list:
+    initialize(db)
+    query = """SELECT id, paid_date, category, amount, vendor, cost_month, bill_date,
+              payment_method, quantity FROM expenses"""
+    conditions, values = [], []
+    if category is not None:
+        conditions.append("category=?")
+        values.append(normalize_name(category))
+    if payment_method is not None:
+        conditions.append("payment_method=?")
+        values.append(normalize_name(payment_method))
+    if conditions:
+        query += " WHERE " + " AND ".join(conditions)
+    return db.execute(query + " ORDER BY id", values).fetchall()
+
+
 def delete_expense(db: duckdb.DuckDBPyConnection, expense_id: int) -> None:
     db.execute("BEGIN TRANSACTION")
     try:

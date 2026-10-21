@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, delete_expense, edit_expense, find_duplicate, get_settings, list_managed_values, rename_managed_value, same_expense, set_setting, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, delete_expense, edit_expense, find_duplicate, get_settings, list_expenses, list_managed_values, rename_managed_value, same_expense, set_setting, validate_expenses
 
 
 def _choice(prompt, values):
@@ -41,6 +41,9 @@ def main(argv=None):
     commands.add_parser("add")
     import_command = commands.add_parser("import")
     import_command.add_argument("file")
+    list_command = commands.add_parser("list")
+    list_command.add_argument("--category")
+    list_command.add_argument("--payment-method")
     edit_command = commands.add_parser("edit")
     edit_command.add_argument("expense_id", type=int)
     delete_command = commands.add_parser("delete")
@@ -78,6 +81,14 @@ def main(argv=None):
     setting_set.add_argument("key")
     setting_set.add_argument("value")
     args = parser.parse_args(argv)
+
+    if args.command == "list":
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        with duckdb.connect(str(home / "homecost.duckdb")) as db:
+            for row in list_expenses(db, category=args.category, payment_method=args.payment_method):
+                print(f"{row[0]}: {row[1]} {row[2]} {row[3]} method={row[7]} vendor={row[4] or '-'}")
+        return 0
 
     list_kind = None
     if args.command == "categories" and args.category_action == "list":

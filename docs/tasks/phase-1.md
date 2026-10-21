@@ -42,7 +42,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | R-06 | Report monthly-bill record statuses. | 0cb7105 |
 | [x] | O-02 | Create, verify, name, retain, and safely rotate local backups. | 54e729c |
 | [x] | O-03 | Restore to a new path without overwriting an existing database. | 13fe9d3 |
-| [ ] | I-02 | Fix guided entry per the updated I-02: reject invalid numbered choices, offer add-new-category, use the specified prompt order and wording, and parse cost month as YYYY-MM. | |
+| [x] | I-02 | Fix guided entry per the updated I-02: reject invalid numbered choices, offer add-new-category, use the specified prompt order and wording, and parse cost month as YYYY-MM. | 266dd2d |
 | [ ] | — | Present `list` output as an aligned table and show an empty vendor as blank. | |
 
 Before using real household data, run the full documented test suite and synthetic-data demo on Mac, reconcile report totals against source bills or statements, and create a backup that restores successfully to a separate file.

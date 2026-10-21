@@ -37,6 +37,69 @@ def find_duplicate(db: duckdb.DuckDBPyConnection, fields) -> int | None:
     return duplicate[0] if duplicate else None
 
 
+def parse_period(period: str):
+    """Return (start, end_exclusive) for 'YYYY-MM', 'YYYY-Qn', or 'YYYY'."""
+    if not isinstance(period, str):
+        raise ValueError("period must be YYYY-MM, YYYY-Qn, or YYYY")
+    if "-Q" in period:
+        year, _, quarter = period.partition("-Q")
+        if len(year) != 4 or not year.isdigit() or quarter not in {"1", "2", "3", "4"}:
+            raise ValueError("period must be YYYY-MM, YYYY-Qn, or YYYY")
+        start_month = (int(quarter) - 1) * 3 + 1
+        start = date(int(year), start_month, 1)
+    elif "-" in period:
+        year, _, month = period.partition("-")
+        if len(year) != 4 or len(month) != 2 or not year.isdigit() or not month.isdigit() or not 1 <= int(month) <= 12:
+            raise ValueError("period must be YYYY-MM, YYYY-Qn, or YYYY")
+        start = date(int(year), int(month), 1)
+    elif len(period) == 4 and period.isdigit():
+        start = date(int(period), 1, 1)
+    else:
+        raise ValueError("period must be YYYY-MM, YYYY-Qn, or YYYY")
+    if period.isdigit():  # YYYY
+        end = date(start.year + 1, 1, 1)
+    elif "-Q" in period:
+        end = date(start.year + 1, 1, 1) if start.month == 10 else date(start.year, start.month + 3, 1)
+    else:
+        end = date(start.year + 1, 1, 1) if start.month == 12 else date(start.year, start.month + 1, 1)
+    return start, end
+
+
+def category_totals(
+    db: duckdb.DuckDBPyConnection,
+    period: str,
+    basis: str = "cost_month",
+) -> list[tuple[str, Decimal]]:
+    start, end = parse_period(period)
+    if basis not in {"cost_month", "paid_date"}:
+        raise ValueError("basis must be cost_month or paid_date")
+    initialize(db)
+    column = basis
+    return db.execute(
+        f"""SELECT category, SUM(amount) FROM expenses
+            WHERE {column} >= ? AND {column} < ? GROUP BY category ORDER BY category""",
+        [start, end],
+    ).fetchall()
+
+
+def month_detail(
+    db: duckdb.DuckDBPyConnection,
+    period: str,
+    basis: str = "cost_month",
+) -> list[tuple[date, str, Decimal]]:
+    start, end = parse_period(period)
+    if basis not in {"cost_month", "paid_date"}:
+        raise ValueError("basis must be cost_month or paid_date")
+    initialize(db)
+    column = basis
+    month_column = f"date_trunc('month', {column})"
+    return db.execute(
+        f"""SELECT {month_column}, category, SUM(amount) FROM expenses
+            WHERE {column} >= ? AND {column} < ? GROUP BY 1, 2 ORDER BY 1, 2""",
+        [start, end],
+    ).fetchall()
+
+
 def normalize_name(name: str) -> str:
     if not isinstance(name, str):
         raise ValueError("name is required")

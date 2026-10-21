@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, delete_expense, edit_expense, find_duplicate, get_settings, list_expenses, list_managed_values, rename_managed_value, same_expense, set_setting, validate_expenses
+from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, category_totals, delete_expense, edit_expense, find_duplicate, get_settings, list_expenses, list_managed_values, month_detail, rename_managed_value, same_expense, set_setting, validate_expenses
 
 
 def _choice(prompt, values):
@@ -80,7 +80,25 @@ def main(argv=None):
     setting_set = actions.add_parser("set")
     setting_set.add_argument("key")
     setting_set.add_argument("value")
+    report = commands.add_parser("report")
+    report.add_argument("period")
+    report.add_argument("--basis", choices=("cost_month", "paid_date"), default="cost_month")
     args = parser.parse_args(argv)
+
+    if args.command == "report":
+        home = Path.home() / ".homecost"
+        home.mkdir(parents=True, exist_ok=True)
+        try:
+            with duckdb.connect(str(home / "homecost.duckdb")) as db:
+                print(f"Report {args.period} ({args.basis})")
+                for category, total in category_totals(db, args.period, basis=args.basis):
+                    print(f"{category}: {total}")
+                print("Month detail:")
+                for month, category, total in month_detail(db, args.period, basis=args.basis):
+                    print(f"{month:%Y-%m} {category}: {total}")
+        except ValueError as exc:
+            parser.exit(2, f"homecost: error: {exc}\n")
+        return 0
 
     if args.command == "list":
         home = Path.home() / ".homecost"

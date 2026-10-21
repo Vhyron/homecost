@@ -41,6 +41,6 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | R-05 | Report metered usage/unit costs and previous-month comparison behavior. | 0e45518 |
 | [x] | R-06 | Report monthly-bill record statuses. | 0cb7105 |
 | [x] | O-02 | Create, verify, name, retain, and safely rotate local backups. | 54e729c |
-| [ ] | O-03 | Restore to a new path without overwriting an existing database. | |
+| [x] | O-03 | Restore to a new path without overwriting an existing database. | 13fe9d3 |
 
 Before using real household data, run the full documented test suite and synthetic-data demo on Mac, reconcile report totals against source bills or statements, and create a backup that restores successfully to a separate file.

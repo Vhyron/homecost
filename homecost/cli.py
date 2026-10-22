@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, create_backup, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, restore_backup, same_expense, set_setting, today_in_timezone, validate_expenses
+from homecost.service import ManagedTransaction, add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, create_backup, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, restore_backup, same_expense, set_setting, today_in_timezone, validate_expenses
 
 
 def _choice(prompt, values, allow_empty=False):
@@ -28,26 +28,74 @@ def _choice(prompt, values, allow_empty=False):
         print(f"Enter a number between 1 and {len(values)}.")
 
 
-def _optional_date(prompt):
-    value = input(prompt).strip()
-    return date.fromisoformat(value) if value else None
+def _prompt_date(prompt, *, allow_empty=False, error="Enter the date as YYYY-MM-DD."):
+    while True:
+        raw = input(prompt).strip()
+        if not raw:
+            if allow_empty:
+                return None
+            print("This field is required.")
+            continue
+        try:
+            return date.fromisoformat(raw)
+        except ValueError:
+            print(error)
 
 
 def _optional_month(prompt):
-    value = input(prompt).strip()
-    if not value:
-        return None
-    year, separator, month = value.partition("-")
-    if (
-        separator != "-"
-        or len(year) != 4
-        or len(month) != 2
-        or not year.isdigit()
-        or not month.isdigit()
-        or not 1 <= int(month) <= 12
-    ):
-        raise ValueError("cost month must be YYYY-MM")
-    return date(int(year), int(month), 1)
+    while True:
+        value = input(prompt).strip()
+        if not value:
+            return None
+        year, separator, month = value.partition("-")
+        if (
+            separator == "-"
+            and len(year) == 4
+            and len(month) == 2
+            and year.isdigit()
+            and month.isdigit()
+            and 1 <= int(month) <= 12
+        ):
+            return date(int(year), int(month), 1)
+        print("Enter the cost month as YYYY-MM (for example, 2025-09), or press Enter to use the paid month.")
+
+
+def _prompt_amount():
+    while True:
+        raw = input("Amount: ").strip()
+        if not raw:
+            print("This field is required.")
+            continue
+        try:
+            value = Decimal(raw)
+        except InvalidOperation:
+            print("Enter a positive amount with at most two decimal places (for example, 123.45).")
+            continue
+        if not value.is_finite() or value <= 0 or value != value.quantize(Decimal("0.01")):
+            print("Enter a positive amount with at most two decimal places (for example, 123.45).")
+            continue
+        return value
+
+
+def _prompt_quantity(unit):
+    while True:
+        raw = input(f"Quantity ({unit}): ").strip()
+        if not raw:
+            print("This field is required.")
+            continue
+        try:
+            value = Decimal(raw)
+        except InvalidOperation:
+            print("Enter a positive quantity with at most three decimal places.")
+            continue
+        if not value.is_finite() or value <= 0 or value != value.quantize(Decimal("0.001")):
+            print("Enter a positive quantity with at most three decimal places.")
+            continue
+        return value
+
+
+def _add_payment_method_flow(db):
+    return add_payment_method(db, input("Payment method name: "))
 
 
 def _add_category_flow(db):
@@ -391,7 +439,7 @@ def main(argv=None):
         home.mkdir(parents=True, exist_ok=True)
         with duckdb.connect(str(home / "homecost.duckdb")) as db:
             try:
-                name = add_payment_method(db, input("Payment method name: "))
+                name = _add_payment_method_flow(db)
             except ValueError as exc:
                 parser.exit(2, f"homecost: error: {exc}\n")
         print(f"Added payment method {name}.")
@@ -434,27 +482,41 @@ def main(argv=None):
         home.mkdir(parents=True, exist_ok=True)
         with duckdb.connect(str(db_path)) as db:
             initialize(db)
+            db.execute("BEGIN TRANSACTION")
+            managed = ManagedTransaction(db)
             try:
-                paid_date = date.fromisoformat(input("Paid date (YYYY-MM-DD): ").strip())
-                amount = Decimal(input("Amount: ").strip())
+                paid_date = _prompt_date(
+                    "Paid date (YYYY-MM-DD): ",
+                    error="Enter the paid date as YYYY-MM-DD (for example, 2025-09-15).",
+                )
+                amount = _prompt_amount()
                 while True:
-                    categories = db.execute(
+                    categories = managed.execute(
                         "SELECT name, unit FROM categories WHERE is_active AND name != 'unassigned' ORDER BY name"
                     ).fetchall()
                     labels = [row[0] for row in categories] + ["add a new category"]
                     category_index = _choice("Category number: ", labels)
                     if category_index == len(categories):
-                        category = _add_category_flow(db)
+                        category = _add_category_flow(managed)
                         print(f"Added category {category}.")
                         continue
                     category, unit = categories[category_index]
                     break
-                methods = [row[0] for row in db.execute(
-                    "SELECT name FROM payment_methods WHERE is_active AND name != 'unassigned' ORDER BY name"
-                ).fetchall()]
-                payment_method = methods[_choice("Payment method number: ", methods)]
+                while True:
+                    methods = [row[0] for row in managed.execute(
+                        "SELECT name FROM payment_methods WHERE is_active AND name != 'unassigned' ORDER BY name"
+                    ).fetchall()]
+                    method_index = _choice(
+                        "Payment method number: ",
+                        methods + ["add a new payment method"],
+                    )
+                    if method_index == len(methods):
+                        print(f"Added payment method {_add_payment_method_flow(managed)}.")
+                        continue
+                    payment_method = methods[method_index]
+                    break
 
-                vendors = [row[0] for row in db.execute("SELECT name FROM vendors WHERE is_active ORDER BY name").fetchall()]
+                vendors = [row[0] for row in managed.execute("SELECT name FROM vendors WHERE is_active ORDER BY name").fetchall()]
                 vendor_index = _choice(
                     "Vendor number, or Enter to skip: ",
                     vendors + ["add a vendor"],
@@ -463,13 +525,17 @@ def main(argv=None):
                 if vendor_index is None:
                     vendor = None
                 elif vendor_index == len(vendors):
-                    vendor = add_vendor(db, input("Vendor name: ").strip())
+                    vendor = add_vendor(managed, input("Vendor name: ").strip())
                 else:
                     vendor = vendors[vendor_index]
 
                 cost_month = _optional_month("Cost month (YYYY-MM, press Enter to use the paid month): ")
-                bill_date = _optional_date("Bill date (YYYY-MM-DD, Enter to skip): ")
-                quantity = Decimal(input(f"Quantity ({unit}): ").strip()) if unit else None
+                bill_date = _prompt_date(
+                    "Bill date (YYYY-MM-DD, Enter to skip): ",
+                    allow_empty=True,
+                    error="Enter the bill date as YYYY-MM-DD (for example, 2025-09-15).",
+                )
+                quantity = _prompt_quantity(unit) if unit else None
                 fields = {
                     "paid_date": paid_date,
                     "category": category,
@@ -480,9 +546,9 @@ def main(argv=None):
                     "bill_date": bill_date,
                     "quantity": quantity,
                 }
-                duplicate_id = find_duplicate(db, fields)
+                duplicate_id = find_duplicate(managed, fields)
                 if duplicate_id is not None:
-                    match = db.execute(
+                    match = managed.execute(
                         """SELECT paid_date, cost_month, bill_date, category, amount, vendor, quantity,
                            payment_method FROM expenses WHERE id=?""",
                         [duplicate_id],
@@ -491,8 +557,14 @@ def main(argv=None):
                     if input("Add anyway? [yes/no]: ").strip().lower() != "yes":
                         print("Expense not added.")
                         return 0
-                expense_id = add_expense(db, **fields)
+                expense_id = add_expense(managed, **fields)
+                managed.execute("COMMIT")
+            except KeyboardInterrupt:
+                db.execute("ROLLBACK")
+                print("Canceled - nothing was written.")
+                return 0
             except (ValueError, InvalidOperation) as exc:
+                db.execute("ROLLBACK")
                 parser.exit(2, f"homecost: error: {exc}\n")
         print(f"Added expense {expense_id}.")
         return 0

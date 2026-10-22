@@ -44,6 +44,6 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | O-03 | Restore to a new path without overwriting an existing database. | 13fe9d3 |
 | [x] | I-02 | Fix guided entry per the updated I-02: reject invalid numbered choices, offer add-new-category, use the specified prompt order and wording, and parse cost month as YYYY-MM. | 266dd2d |
 | [x] | — | Present `list` output as an aligned table and show an empty vendor as blank. | d9b3855 |
-| [ ] | I-02 | Reorder guided entry prompts so amount follows paid date and precedes category, per the corrected I-02. | |
+| [x] | I-02 | Reorder guided entry prompts so amount follows paid date and precedes category, per the corrected I-02. | 06f8df6 |
 
 Before using real household data, run the full documented test suite and synthetic-data demo on Mac, reconcile report totals against source bills or statements, and create a backup that restores successfully to a separate file.

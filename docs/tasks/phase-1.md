@@ -46,6 +46,6 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | — | Present `list` output as an aligned table and show an empty vendor as blank. | d9b3855 |
 | [x] | I-02 | Reorder guided entry prompts so amount follows paid date and precedes category, per the corrected I-02. | 06f8df6 |
 | [x] | I-02 | Make guided-entry prompts re-prompt with clear human-readable messages on invalid input (no internal parse errors), add the add-a-payment-method option, and give Ctrl+C a friendly cancel that writes nothing. | 9bc0f66 |
-| [ ] | R-01 | Add a grand total for the reported period to month, quarter, and year reports. | |
+| [x] | R-01 | Add a grand total for the reported period to month, quarter, and year reports. | c7e3891 |
 
 Before using real household data, run the full documented test suite and synthetic-data demo on Mac, reconcile report totals against source bills or statements, and create a backup that restores successfully to a separate file.

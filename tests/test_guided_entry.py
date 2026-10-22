@@ -28,13 +28,13 @@ def today():
 
 BASE_ANSWERS = {
     "Paid date": None,
+    "Amount": None,
     "Category number": ["2"],
     "Payment method number": ["1"],
     "Vendor number": [""],
     "Cost month": [""],
     "Bill date": [""],
     "Quantity": None,
-    "Amount": None,
 }
 
 
@@ -74,12 +74,12 @@ def test_guided_add_prompts_in_specified_order(tmp_path, monkeypatch):
     assert main(["add"]) == 0
     order = []
     for prompt in answers.prompts:
-        for key in ("Paid date", "Category number", "Payment method number", "Vendor number",
-                    "Cost month", "Bill date", "Quantity", "Amount"):
+        for key in ("Paid date", "Amount", "Category number", "Payment method number", "Vendor number",
+                    "Cost month", "Bill date", "Quantity"):
             if key in prompt and key not in order:
                 order.append(key)
-    assert order == ["Paid date", "Category number", "Payment method number", "Vendor number",
-                     "Cost month", "Bill date", "Quantity", "Amount"]
+    assert order == ["Paid date", "Amount", "Category number", "Payment method number", "Vendor number",
+                     "Cost month", "Bill date", "Quantity"]
 
 
 def test_guided_add_rejects_invalid_and_out_of_range_choice_numbers(tmp_path, monkeypatch, capsys):

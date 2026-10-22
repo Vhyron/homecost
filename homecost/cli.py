@@ -436,6 +436,7 @@ def main(argv=None):
             initialize(db)
             try:
                 paid_date = date.fromisoformat(input("Paid date (YYYY-MM-DD): ").strip())
+                amount = Decimal(input("Amount: ").strip())
                 while True:
                     categories = db.execute(
                         "SELECT name, unit FROM categories WHERE is_active AND name != 'unassigned' ORDER BY name"
@@ -469,7 +470,6 @@ def main(argv=None):
                 cost_month = _optional_month("Cost month (YYYY-MM, press Enter to use the paid month): ")
                 bill_date = _optional_date("Bill date (YYYY-MM-DD, Enter to skip): ")
                 quantity = Decimal(input(f"Quantity ({unit}): ").strip()) if unit else None
-                amount = Decimal(input("Amount: ").strip())
                 fields = {
                     "paid_date": paid_date,
                     "category": category,

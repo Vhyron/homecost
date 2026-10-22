@@ -608,6 +608,25 @@ def edit_expense(db: duckdb.DuckDBPyConnection, expense_id: int, **changes) -> i
         raise
 
 
+class ManagedTransaction:
+    """Connection wrapper for code running inside a caller-managed transaction.
+
+    DuckDB has no nested transactions, and a failed BEGIN aborts the open
+    transaction, so nested writers must skip their own transaction control.
+    """
+
+    def __init__(self, db):
+        self._db = db
+
+    def execute(self, sql, params=None):
+        if params is None:
+            return self._db.execute(sql)
+        return self._db.execute(sql, params)
+
+    def __getattr__(self, name):
+        return getattr(self._db, name)
+
+
 def add_expense(
     db: duckdb.DuckDBPyConnection,
     *,
@@ -620,7 +639,9 @@ def add_expense(
     bill_date: date | None = None,
     quantity: Decimal | None = None,
 ) -> int:
-    db.execute("BEGIN TRANSACTION")
+    began = not isinstance(db, ManagedTransaction)
+    if began:
+        db.execute("BEGIN TRANSACTION")
     try:
         result = _add_expense(
             db,
@@ -633,8 +654,10 @@ def add_expense(
             bill_date=bill_date,
             quantity=quantity,
         )
-        db.execute("COMMIT")
+        if began:
+            db.execute("COMMIT")
         return result
     except Exception:
-        db.execute("ROLLBACK")
+        if began:
+            db.execute("ROLLBACK")
         raise

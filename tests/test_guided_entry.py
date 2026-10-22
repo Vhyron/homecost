@@ -18,7 +18,10 @@ class Answers:
         self.prompts.append(prompt)
         for key, queue in self.mapping.items():
             if key in prompt and queue:
-                return queue.pop(0)
+                value = queue.pop(0)
+                if value == "^C":
+                    raise KeyboardInterrupt
+                return value
         raise AssertionError(f"unexpected prompt: {prompt}")
 
 
@@ -155,3 +158,98 @@ def test_guided_add_can_add_and_select_existing_vendor(tmp_path, monkeypatch, ca
     assert db.execute("SELECT vendor FROM expenses ORDER BY id").fetchall() == [
         ("corner store",), ("corner store",)
     ]
+
+
+def test_guided_add_reprompts_on_invalid_paid_date(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    answers = metered_answers(paid="oops", overrides={"Paid date": ["oops", ""]})
+    answers.mapping["Paid date"] = ["oops", today().isoformat()]
+    monkeypatch.setattr("builtins.input", answers)
+
+    assert main(["add"]) == 0
+    assert "Enter the paid date as YYYY-MM-DD" in capsys.readouterr().out
+    db = duckdb.connect(str(tmp_path / ".homecost" / "homecost.duckdb"), read_only=True)
+    assert db.execute("SELECT count(*) FROM expenses").fetchone() == (1,)
+
+
+def test_guided_add_reprompts_on_invalid_amount(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    answers = metered_answers(overrides={"Amount": ["", "abc", "-1", "10.50"]})
+    monkeypatch.setattr("builtins.input", answers)
+
+    assert main(["add"]) == 0
+    output = capsys.readouterr().out
+    assert "This field is required." in output
+    assert "Enter a positive amount with at most two decimal places" in output
+    db = duckdb.connect(str(tmp_path / ".homecost" / "homecost.duckdb"), read_only=True)
+    assert db.execute("SELECT amount FROM expenses").fetchone() == (Decimal("10.50"),)
+
+
+def test_guided_add_reprompts_on_invalid_cost_month(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    answers = metered_answers(paid="2025-09-15", overrides={"Cost month": ["2025-9", "2025-09"]})
+    monkeypatch.setattr("builtins.input", answers)
+
+    assert main(["add"]) == 0
+    assert "Enter the cost month as YYYY-MM" in capsys.readouterr().out
+    db = duckdb.connect(str(tmp_path / ".homecost" / "homecost.duckdb"), read_only=True)
+    assert db.execute("SELECT cost_month FROM expenses").fetchone() == (date(2025, 9, 1),)
+
+
+def test_guided_add_reprompts_on_invalid_bill_date(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    answers = metered_answers(overrides={"Bill date": ["junk", "2025-10-01"]})
+    monkeypatch.setattr("builtins.input", answers)
+
+    assert main(["add"]) == 0
+    assert "Enter the bill date as YYYY-MM-DD" in capsys.readouterr().out
+    db = duckdb.connect(str(tmp_path / ".homecost" / "homecost.duckdb"), read_only=True)
+    assert db.execute("SELECT bill_date FROM expenses").fetchone() == (date(2025, 10, 1),)
+
+
+def test_guided_add_reprompts_on_invalid_quantity(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    answers = metered_answers(overrides={"Quantity": ["", "1.2345", "5"]})
+    monkeypatch.setattr("builtins.input", answers)
+
+    assert main(["add"]) == 0
+    output = capsys.readouterr().out
+    assert "This field is required." in output
+    assert "Enter a positive quantity with at most three decimal places" in output
+    db = duckdb.connect(str(tmp_path / ".homecost" / "homecost.duckdb"), read_only=True)
+    assert db.execute("SELECT quantity FROM expenses").fetchone() == (Decimal("5.000"),)
+
+
+def test_guided_add_adds_new_payment_method_in_payment_method_prompt(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    answers = metered_answers(overrides={
+        "Payment method number": ["2", "2"],
+        "Payment method name": ["  GCash "],
+    })
+    monkeypatch.setattr("builtins.input", answers)
+
+    assert main(["add"]) == 0
+    output = capsys.readouterr().out
+    assert "add a new payment method" in output
+    assert "Added payment method gcash." in output
+    db = duckdb.connect(str(tmp_path / ".homecost" / "homecost.duckdb"), read_only=True)
+    assert db.execute("SELECT payment_method FROM expenses").fetchone() == ("gcash",)
+    assert db.execute("SELECT count(*) FROM payment_methods WHERE name='gcash'").fetchone() == (1,)
+
+
+def test_guided_add_ctrl_c_cancels_and_writes_nothing(tmp_path, monkeypatch, capsys):
+    monkeypatch.setenv("HOME", str(tmp_path))
+    answers = metered_answers(overrides={
+        "Category number": ["10"],
+        "Category name": ["Home Service"],
+        "Unit (Enter": ["hours"],
+        "Monthly bill": ["yes"],
+    })
+    answers.mapping["Category number"].append("^C")
+    monkeypatch.setattr("builtins.input", answers)
+
+    assert main(["add"]) == 0
+    assert "canceled" in capsys.readouterr().out.lower()
+    db = duckdb.connect(str(tmp_path / ".homecost" / "homecost.duckdb"), read_only=True)
+    assert db.execute("SELECT count(*) FROM expenses").fetchone() == (0,)
+    assert db.execute("SELECT count(*) FROM categories WHERE name='home service'").fetchone() == (0,)

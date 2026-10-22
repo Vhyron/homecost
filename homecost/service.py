@@ -234,6 +234,22 @@ def is_current_period(db: duckdb.DuckDBPyConnection, period: str) -> bool:
     return start <= today < end
 
 
+def period_total(
+    db: duckdb.DuckDBPyConnection,
+    period: str,
+    basis: str = "cost_month",
+) -> Decimal:
+    start, end = parse_period(period)
+    if basis not in {"cost_month", "paid_date"}:
+        raise ValueError("basis must be cost_month or paid_date")
+    initialize(db)
+    total = db.execute(
+        f"SELECT COALESCE(SUM(amount), 0) FROM expenses WHERE {basis} >= ? AND {basis} < ?",
+        [start, end],
+    ).fetchone()[0]
+    return Decimal(total).quantize(Decimal("0.01"))
+
+
 def month_detail(
     db: duckdb.DuckDBPyConnection,
     period: str,

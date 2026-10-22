@@ -7,7 +7,7 @@ from pathlib import Path
 import duckdb
 
 from homecost.db import initialize
-from homecost.service import ManagedTransaction, add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, create_backup, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, rename_managed_value, restore_backup, same_expense, set_setting, today_in_timezone, validate_expenses
+from homecost.service import ManagedTransaction, add_category, add_expense, add_expenses, add_payment_method, add_vendor, archive_managed_value, bill_status, category_totals, create_backup, delete_expense, edit_expense, find_duplicate, get_settings, grocery_trip_summary, is_current_period, list_expenses, list_managed_values, metered_summary, month_detail, period_total, rename_managed_value, restore_backup, same_expense, set_setting, today_in_timezone, validate_expenses
 
 
 def _choice(prompt, values, allow_empty=False):
@@ -206,6 +206,7 @@ def main(argv=None):
                     print("No expenses recorded for this period.")
                 for category, total in totals:
                     print(f"{category}: {total}")
+                print(f"Total: {period_total(db, args.period, basis=args.basis)}")
                 print("Month detail:")
                 for month, category, total in month_detail(db, args.period, basis=args.basis):
                     print(f"{month:%Y-%m} {category}: {total}")

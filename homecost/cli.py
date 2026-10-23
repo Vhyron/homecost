@@ -1,5 +1,7 @@
 import argparse
 import csv
+import sys
+import termios
 from datetime import date
 from decimal import Decimal, InvalidOperation
 from pathlib import Path
@@ -15,7 +17,7 @@ def _choice(prompt, values, allow_empty=False):
     while True:
         for index, value in enumerate(values, 1):
             print(f"{index}. {value}")
-        raw = input(prompt).strip()
+        raw = _input(prompt).strip()
         if allow_empty and not raw:
             return None
         try:
@@ -28,9 +30,24 @@ def _choice(prompt, values, allow_empty=False):
         print(f"Enter a number between 1 and {len(values)}.")
 
 
+def _input(prompt):
+    """input() with ECHOCTL cleared so Ctrl+C does not echo ^C (terminals only)."""
+    try:
+        original = termios.tcgetattr(sys.stdin)
+    except (termios.error, ValueError, AttributeError):
+        return input(prompt)
+    try:
+        suppressed = list(original)
+        suppressed[3] &= ~termios.ECHOCTL
+        termios.tcsetattr(sys.stdin, termios.TCSANOW, suppressed)
+        return input(prompt)
+    finally:
+        termios.tcsetattr(sys.stdin, termios.TCSANOW, original)
+
+
 def _prompt_date(prompt, *, allow_empty=False, error="Enter the date as YYYY-MM-DD."):
     while True:
-        raw = input(prompt).strip()
+        raw = _input(prompt).strip()
         if not raw:
             if allow_empty:
                 return None
@@ -44,7 +61,7 @@ def _prompt_date(prompt, *, allow_empty=False, error="Enter the date as YYYY-MM-
 
 def _optional_month(prompt):
     while True:
-        value = input(prompt).strip()
+        value = _input(prompt).strip()
         if not value:
             return None
         year, separator, month = value.partition("-")
@@ -62,7 +79,7 @@ def _optional_month(prompt):
 
 def _prompt_amount():
     while True:
-        raw = input("Amount: ").strip()
+        raw = _input("Amount: ").strip()
         if not raw:
             print("This field is required.")
             continue
@@ -79,7 +96,7 @@ def _prompt_amount():
 
 def _prompt_quantity(unit):
     while True:
-        raw = input(f"Quantity ({unit}): ").strip()
+        raw = _input(f"Quantity ({unit}): ").strip()
         if not raw:
             print("This field is required.")
             continue
@@ -95,13 +112,13 @@ def _prompt_quantity(unit):
 
 
 def _add_payment_method_flow(db):
-    return add_payment_method(db, input("Payment method name: "))
+    return add_payment_method(db, _input("Payment method name: "))
 
 
 def _add_category_flow(db):
-    name = input("Category name: ")
-    unit = input("Unit (Enter for none): ").strip() or None
-    answer = input("Monthly bill expected? [yes/no]: ").strip().lower()
+    name = _input("Category name: ")
+    unit = _input("Unit (Enter for none): ").strip() or None
+    answer = _input("Monthly bill expected? [yes/no]: ").strip().lower()
     if answer not in {"yes", "no"}:
         raise ValueError("answer yes or no")
     return add_category(db, name, unit, answer == "yes")
@@ -526,7 +543,7 @@ def main(argv=None):
                 if vendor_index is None:
                     vendor = None
                 elif vendor_index == len(vendors):
-                    vendor = add_vendor(managed, input("Vendor name: ").strip())
+                    vendor = add_vendor(managed, _input("Vendor name: ").strip())
                 else:
                     vendor = vendors[vendor_index]
 
@@ -555,14 +572,14 @@ def main(argv=None):
                         [duplicate_id],
                     ).fetchone()
                     print(f"Possible duplicate: expense {duplicate_id}: {match}")
-                    if input("Add anyway? [yes/no]: ").strip().lower() != "yes":
+                    if _input("Add anyway? [yes/no]: ").strip().lower() != "yes":
                         print("Expense not added.")
                         return 0
                 expense_id = add_expense(managed, **fields)
                 managed.execute("COMMIT")
             except KeyboardInterrupt:
                 db.execute("ROLLBACK")
-                print("Canceled - nothing was written.")
+                print("\nCanceled - nothing was written.")
                 return 0
             except (ValueError, InvalidOperation) as exc:
                 db.execute("ROLLBACK")

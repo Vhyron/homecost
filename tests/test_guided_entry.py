@@ -253,3 +253,42 @@ def test_guided_add_ctrl_c_cancels_and_writes_nothing(tmp_path, monkeypatch, cap
     db = duckdb.connect(str(tmp_path / ".homecost" / "homecost.duckdb"), read_only=True)
     assert db.execute("SELECT count(*) FROM expenses").fetchone() == (0,)
     assert db.execute("SELECT count(*) FROM categories WHERE name='home service'").fetchone() == (0,)
+
+
+def test_guided_add_suppresses_echoctl_and_prints_cancel_on_own_line(tmp_path, monkeypatch, capsys):
+    import sys
+    import termios
+    import types
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    calls = []
+    original = [0, 0, 0, termios.ECHOCTL, 0, 0, 0]
+
+    def fake_tcgetattr(fd):
+        calls.append("getattr")
+        return list(original)
+
+    def fake_tcsetattr(fd, when, attrs):
+        calls.append(attrs[3] & termios.ECHOCTL)
+
+    monkeypatch.setattr(termios, "tcgetattr", fake_tcgetattr)
+    monkeypatch.setattr(termios, "tcsetattr", fake_tcsetattr)
+    monkeypatch.setattr(sys, "stdin", types.SimpleNamespace(fileno=lambda: 0))
+
+    answers = metered_answers(overrides={
+        "Category number": ["10"],
+        "Category name": ["Home Service"],
+        "Unit (Enter": ["hours"],
+        "Monthly bill": ["yes"],
+    })
+    answers.mapping["Category number"].append("^C")
+    monkeypatch.setattr("builtins.input", answers)
+
+    assert main(["add"]) == 0
+    assert calls, "expected terminal attribute calls around prompts"
+    assert calls[0] == "getattr"
+    assert calls[1] == 0, "ECHOCTL should be cleared while the prompt runs"
+    assert calls[-1] == termios.ECHOCTL, "original flags should be restored afterwards"
+    assert calls == ["getattr", 0, termios.ECHOCTL] * (len(calls) // 3)
+    assert len(calls) % 3 == 0
+    assert "Canceled - nothing was written." in capsys.readouterr().out.splitlines()

@@ -16,7 +16,7 @@ Follow the [Phase 1 task checklist](tasks/phase-1.md) and [branch workflow](work
 
 **Before using real household data:** run the full test suite and synthetic-data demo on Mac, reconcile report totals against source bills or statements, and create a backup that restores successfully to a separate file.
 
-**Gate 1:** All SPEC requirements pass; the demo works; totals reconcile; backup and restore are verified; the owner approves real-data use.
+**Gate 1:** Approved. All 36 SPEC tasks pass with 123+ tests; the owner completed the synthetic-data demo, reconciled report totals, and verified backup, restore, and retention on the Mac. Real-data use is approved; the owner initializes the live database to begin Phase 2.
 
 ## Phase 2: Use and refine
 

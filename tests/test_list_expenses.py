@@ -66,11 +66,41 @@ def test_list_cli_shows_aligned_table_with_blank_vendor(tmp_path, monkeypatch, c
 
     assert main(["list"]) == 0
     lines = [line for line in capsys.readouterr().out.splitlines() if line.strip()]
-    assert any("vendor" in line.lower() for line in lines[:1])
-    rows = [line for line in lines if line.split()[0] in {str(with_vendor), str(no_vendor)}]
+    rules = [line for line in lines if set(line) <= {"+", "-"}]
+    assert len(rules) == 3, "bordered table needs top, header, and bottom rules"
+    assert "vendor" in lines[1].lower()
+    rows = [
+        line for line in lines
+        if line.startswith("|") and line.split("|")[1].strip() in {str(with_vendor), str(no_vendor)}
+    ]
     assert len(rows) == 2
-    assert not any("-" == cell for row in rows for cell in row.split())
+    assert not any(cell.strip() == "-" for row in rows for cell in row.split("|"))
     # The category column starts at the same offset in both rows (aligned table).
     category_positions = {row.index("groceries") for row in rows if "groceries" in row}
     wifi_positions = {row.index("wi-fi") for row in rows if "wi-fi" in row}
     assert len(category_positions | wifi_positions) == 1
+    # An empty vendor stays blank inside its cell.
+    blank_row = next(row for row in rows if row.split("|")[1].strip() == str(no_vendor))
+    assert blank_row.split("|")[6].strip() == ""
+
+
+def test_list_cli_renders_bordered_table(tmp_path, monkeypatch, capsys):
+    from homecost.db import initialize
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    db_path = tmp_path / ".homecost" / "homecost.duckdb"
+    db_path.parent.mkdir(parents=True)
+    db = duckdb.connect(str(db_path))
+    initialize(db)
+    create(db, "groceries", "cash")
+    db.close()
+
+    assert main(["list"]) == 0
+    lines = [line for line in capsys.readouterr().out.splitlines() if line.strip()]
+    rule = lines[0]
+    assert rule.startswith("+") and rule.endswith("+") and set(rule) <= {"+", "-"}
+    assert lines[1].startswith("| ID |") and lines[1].endswith("|")
+    assert lines[2] == rule
+    assert len(lines) == 5, "rule, header, rule, one row, rule"
+    assert lines[3].startswith("| ") and lines[3].endswith(" |")
+    assert lines[4] == rule

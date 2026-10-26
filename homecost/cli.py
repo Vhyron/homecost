@@ -257,9 +257,19 @@ def main(argv=None):
                 max([len(header)] + [len(cell[i]) for cell in cells]) if cells else len(header)
                 for i, header in enumerate(headers)
             ]
-            print("  ".join(header.ljust(width) for header, width in zip(headers, widths)))
+            rule = "+" + "+".join("-" * (width + 2) for width in widths) + "+"
+
+            def bordered(row_cells):
+                return "|" + "|".join(
+                    f" {value.ljust(width)} " for value, width in zip(row_cells, widths)
+                ) + "|"
+
+            print(rule)
+            print(bordered(headers))
+            print(rule)
             for cell in cells:
-                print("  ".join(value.ljust(width) for value, width in zip(cell, widths)))
+                print(bordered(cell))
+            print(rule)
         return 0
 
     list_kind = None

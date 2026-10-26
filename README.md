@@ -52,6 +52,7 @@ Each installation's settings are managed with `homecost settings`; supported key
 - `docs/DECISIONS.md` — index to settled choices in `docs/decisions/`.
 - `docs/DESIGN.md` — concise rationale for the main design choices.
 - `docs/ROADMAP.md` — short phase and gate overview.
+- `docs/runbook.md` — task-based operating instructions: daily use, backups, restore, and recovery.
 - `docs/tasks/phase-1.md` — commit-sized implementation checklist.
 - `docs/workflow/branching-and-commits.md` — feature-branch and commit rules.
 - `AGENTS.md` — concise safety rules and pointer to the docs map.

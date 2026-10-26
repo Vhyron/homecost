@@ -28,6 +28,6 @@ Follow the [Phase 1 task checklist](tasks/phase-1.md) and [branch workflow](work
 
 ## Phase 3: Move to a Raspberry Pi (later)
 
-When hardware is available, back up the Mac database, restore it on the Pi, and verify reports before switching live entry. Keep the database and application together, not on a network share. Write concise task-based CLI/CSV usage, backup, restore, recovery, and Mac-to-Pi migration steps in `docs/runbook.md` once the actual hardware is known, before relying on the Pi as the live system.
+When hardware is available, back up the Mac database, restore it on the Pi, and verify reports before switching live entry. Keep the database and application together, not on a network share. Extend [the runbook](runbook.md) — which already covers daily use, backups, restore, and recovery on the Mac — with the Mac-to-Pi migration steps once the actual hardware is known, before relying on the Pi as the live system.
 
 **Gate 3:** The Pi restore and reports are verified, the Mac copy is retired from live entry, and the runbook covers routine operation and recovery.

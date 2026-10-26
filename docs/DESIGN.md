@@ -19,3 +19,12 @@ A monthly-bill flag means a payment is expected each month; it is not a general 
 DuckDB keeps a small local warehouse in one file without a separate database server. Sequential CLI use fits one household and keeps operation simple. Keep the database local to its machine. The first version uses manual backups; automatic off-device copying can wait until it is needed.
 
 Each installation represents one household. Time zone and currency are per-installation settings; starter categories are shared defaults, and added categories are per-installation data. This keeps the design reusable without adding multi-household or login features.
+
+## Accepted implementation risks
+
+Two implementation choices were accepted at the Phase 1 gate, recorded here so they are not rediscovered later:
+
+- **Backups are file copies, not database-native snapshots.** `homecost backup` checkpoints DuckDB and copies the file. This is safe only under the one-process-at-a-time rule; safety rests on operating discipline rather than a database-level online backup. Failed or unverifiable backups never trigger pruning, so the last good backup survives.
+- **Currency validation uses a static ISO 4217 list in code.** No network dependency, but a needed code could be missing until the list is updated.
+
+Both are documented as operating cautions in [the runbook](runbook.md). If either ever causes a real problem, revisit the design then.

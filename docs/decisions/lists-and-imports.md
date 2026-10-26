@@ -16,3 +16,5 @@ These are settled owner decisions. Normative behavior is in [scope and data](../
 | DEC-37 | Renaming a category, vendor, or payment method updates the label on all existing expenses and future entries; confirm and report the number of affected expenses. |
 | DEC-38 | Removing a category, vendor, or payment method requires confirmation and archives it, preserving historical expenses and reports while excluding it from new entries/imports. Adding an archived name reactivates it. |
 | DEC-39 | Keep `unassigned` as a reserved system value. Correct an individual expense through `homecost edit`; use category or payment-method filters to find unassigned records. |
+| DEC-40 | Build CLI and CSV write paths in I-02 and I-04/I-05, respectively, using the shared `service.py` validation as each is implemented. Run I-01 as an integration check after both paths exist; do not add temporary adapters. |
+| DEC-41 | V1 does not track whether an expense was entered manually or imported from CSV. An edit preserves the expense ID and every field it does not change. |

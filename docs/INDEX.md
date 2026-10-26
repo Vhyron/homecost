@@ -19,6 +19,7 @@ Start here, then load only the files relevant to the current task. Do not read e
 | Change a report | [Reports](spec/reports.md), plus [dates and reports decisions](decisions/dates-and-reports.md) and [DESIGN](DESIGN.md) as needed. |
 | Change settings, backups, or restore | [Operations](spec/operations.md), plus [operations and engineering decisions](decisions/operations-and-engineering.md). |
 | Plan or execute a Phase 1 task | [Phase 1 tasks](tasks/phase-1.md), [branch workflow](workflow/branching-and-commits.md), and only the SPEC/decision topics that task references. |
-| Prepare the later Mac-to-Pi move | [ROADMAP](ROADMAP.md); the operational instructions belong in the future `runbook.md`. |
+| Prepare the later Mac-to-Pi move | [ROADMAP](ROADMAP.md); [the runbook](runbook.md) covers daily operation and will gain the migration steps in Phase 3. |
+| Operate homecost day to day (owner) | [Runbook](runbook.md). |
 
 Requirement IDs stay attached to their canonical topic file and are used in tests, task entries, and commits.

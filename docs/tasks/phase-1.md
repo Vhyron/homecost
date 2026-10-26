@@ -44,7 +44,7 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | O-03 | Restore to a new path without overwriting an existing database. | 13fe9d3 |
 | [x] | I-02 | Fix guided entry per the updated I-02: reject invalid numbered choices, offer add-new-category, use the specified prompt order and wording, and parse cost month as YYYY-MM. | 266dd2d |
 | [x] | — | Present `list` output as an aligned table and show an empty vendor as blank. | d9b3855 |
-| [ ] | — | Render `homecost list` output as a bordered table with an outline around cells and header, using only the standard library. | |
+| [x] | — | Render `homecost list` output as a bordered table with an outline around cells and header, using only the standard library. | c3a99c5 |
 | [x] | I-02 | Reorder guided entry prompts so amount follows paid date and precedes category, per the corrected I-02. | 06f8df6 |
 | [x] | I-02 | Make guided-entry prompts re-prompt with clear human-readable messages on invalid input (no internal parse errors), add the add-a-payment-method option, and give Ctrl+C a friendly cancel that writes nothing. | 9bc0f66 |
 | [x] | R-01 | Add a grand total for the reported period to month, quarter, and year reports. | c7e3891 |

@@ -50,4 +50,4 @@ For each SPEC task: write the failing test first, implement only that requiremen
 | [x] | R-01 | Add a grand total for the reported period to month, quarter, and year reports. | c7e3891 |
 | [x] | I-02 | Suppress the terminal ^C echo on Ctrl+C during guided entry and print the cancellation message on its own line. | bf2e56a |
 
-Before using real household data, run the full documented test suite and synthetic-data demo on Mac, reconcile report totals against source bills or statements, and create a backup that restores successfully to a separate file.
+Before using real household data, the owner runs the synthetic-data demo manually: enter sample expenses, reconcile report totals against source bills or statements, and create a backup that restores successfully to a separate file. Implementation sessions do not run the demo and never create, import into, or modify the owner's live database.
